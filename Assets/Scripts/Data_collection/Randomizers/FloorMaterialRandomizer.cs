@@ -31,7 +31,7 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
 
         // Since the gameobject we are using has several materials (instead
         // of one), and each one of these represent a different part, we have 
-        // to know which is the right one (i.e. the one representing the floor)
+        // to know which is the right one (i.e., the one representing the floor)
         private string FLOOR_MATERIAL_NAME = "MarbleFlooring_Mat (Instance)";
 
         protected override void OnAwake()

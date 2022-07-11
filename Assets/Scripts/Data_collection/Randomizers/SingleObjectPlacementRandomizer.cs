@@ -51,7 +51,7 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             // It's the pool of prefabs where at each iteration we will
             // sample from.
             m_GameObjectOneWayCache = new GameObjectOneWayCache(
-                m_Container.transform, prefabs.categories.Select(element => element.Item1).ToArray());
+                m_Container.transform, prefabs.categories.Select(element => element.Item1).ToArray(), this);
 
             rangeX = plane.GetComponent<Renderer>().bounds.extents.x;
             rangeZ = plane.GetComponent<Renderer>().bounds.extents.z;
