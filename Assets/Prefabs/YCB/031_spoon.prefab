@@ -104,6 +104,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5895857752753219130}
+  - component: {fileID: 223321050039161288}
   m_Layer: 0
   m_Name: 031_spoon
   m_TagString: Untagged
@@ -126,6 +127,22 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &223321050039161288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8292976521222311120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b33f0bc2b78db642a758f07826d0dd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  labels:
+  - 031_spoon
+  useAutoLabeling: 1
+  autoLabelingSchemeType: AssetNameLabelingScheme
 --- !u!1 &8308727688565713452
 GameObject:
   m_ObjectHideFlags: 0

@@ -202,6 +202,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7857444915376602880}
+  - component: {fileID: -2459258668089126399}
   m_Layer: 0
   m_Name: 011_banana
   m_TagString: Untagged
@@ -224,6 +225,22 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &-2459258668089126399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7368047498386531770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b33f0bc2b78db642a758f07826d0dd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  labels:
+  - 011_banana
+  useAutoLabeling: 1
+  autoLabelingSchemeType: AssetNameLabelingScheme
 --- !u!1 &8124731824650707743
 GameObject:
   m_ObjectHideFlags: 0

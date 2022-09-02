@@ -105,7 +105,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1893018236376908658}
   m_Layer: 0
-  m_Name: pringles[TODO]
+  m_Name: 001_chips_can
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
