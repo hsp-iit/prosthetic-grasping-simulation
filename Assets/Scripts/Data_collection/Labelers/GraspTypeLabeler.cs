@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Perception.GroundTruth;
 using UnityEngine.Perception.GroundTruth.DataModel;
+using UnityEngine.Perception.Settings;
 
 
 /// <summary>
@@ -44,6 +45,13 @@ public sealed class GraspTypeLabeler : CameraLabeler
     {
         graspTypeAnnotationDefinition = new GraspTypeAnnotationDefinition(annotationId);
         DatasetCapture.RegisterAnnotationDefinition(graspTypeAnnotationDefinition);
+
+        if (viewType != "Wrist")
+        {
+            Debug.LogError("Wrong value in View Type field: " + viewType + ". " +
+                           "Currently, the only admitted value is [Wrist]");
+            UnityEditor.EditorApplication.isPlaying = false;
+        }
     }
 
     /// <summary>
@@ -52,9 +60,10 @@ public sealed class GraspTypeLabeler : CameraLabeler
     public GameObject simulationScenario;
 
     /// <summary>
-    /// The view type. It can be one of [Head_d435, Wrist_d435]. Default is Wrist_d435
+    /// The view type. It could be one of [Head, Wrist]. But, we temporarily 
+    /// removed the Head camera, therefore only Wrist option is allowed
     /// </summary>
-    public string viewType = "Wrist_d435";      // TODO: remove _d435. Consequently, remove it also from post-processing script for label conversion     
+    public string viewType = "Wrist";      
 
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     [SuppressMessage("ReSharper", "NotAccessedField.Local")]
@@ -107,31 +116,37 @@ public sealed class GraspTypeLabeler : CameraLabeler
         {"medium_wrap", "power_no3" },
         {"sphere_4fingers", "power_no3" },
         {"power_sphere", "power_no3" },
+        {"power_disk", "power_no3"},
         {"prismatic_4fingers", "pinch_no3" },
         {"tripod", "pinch_3" },
         {"prismatic_2fingers", "pinch_3" },
 
         // TODO: are these below used?
-        {"precision_sphere", "pinch_no3" },
-        {"tip_pinch", "pinch_3"},
+        //{"precision_sphere", "pinch_no3" },
+        {"precision_sphere", "power_no3" },
+        {"tip_pinch", "pinch_3"}
     };
 
     private Dictionary<string, string> instance2object = new Dictionary<string, string>()
     {
-        {"pitcher", "dispenser" },
-        {"mustard", "dispenser" },
-        {"red_plate", "plate" },
-        {"abrasive_sponge", "sponge" },
-        {"pringles", "tube" },
-        {"meat_can", "can" },
-        {"red_mug", "mug" },
-        {"hammer", "big_tool" },
-        {"plum", "small_ball" },
-        {"baseball_ball", "big_ball" },
-        {"ball", "big_ball"},
-        {"spoon", "small_tool" },
-        {"marker", "small_tool" },
-        {"red_cube", "small_cube" },
+        {"019_pitcher_base", "dispenser" },
+        {"006_mustard_bottle", "dispenser" },
+        {"029_plate", "plate" },
+        {"026_sponge", "sponge" },
+        {"010_potted_meat_can", "can" },
+        {"025_mug", "mug" },
+        {"018_plum", "small_ball" },
+        {"055_baseball", "big_ball"},
+        {"031_spoon", "small_tool" },
+        {"011_banana", "long_fruit"},
+        {"021_bleach_cleanser", "dispenser"},
+        {"033_spatula", "big_tool"},
+        {"037_scissors",  "small_tool"},
+        {"040_large_marker", "small_tool"},
+        {"048_hammer", "big_tool"},
+        {"001_chips_can", "tube" },
+        {"red_wood_block", "small_cube" },
+
 
         {"book", "book"},
         {"book_opened", "book"},
@@ -242,7 +257,7 @@ public sealed class GraspTypeLabeler : CameraLabeler
         }
 
         string preshapeName = graspType2preshape[graspTypeName];
-
+        
         //Report using the PerceptionCamera's SensorHandle if scheduled 
         GraspTypeMetaValues curSequenceValues = new GraspTypeMetaValues(
             objectName, 
@@ -258,6 +273,7 @@ public sealed class GraspTypeLabeler : CameraLabeler
         );
         var annotation = new GraspTypeAnnotation(graspTypeAnnotationDefinition, sensorHandle.Id, curSequenceValues);
         sensorHandle.ReportAnnotation(graspTypeAnnotationDefinition, annotation);
+
     }
 }
 
