@@ -16,7 +16,12 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
     {
         public UniformSampler temperatureSampler;
         public UniformSampler intensitySampler;  
-        public ColorRgbParameter lightColorSampler;
+
+        // The ColorRGBparameter should be used instead of 
+        // this, but it has a bug.
+        public UniformSampler colorR;
+        public UniformSampler colorG;
+        public UniformSampler colorB;
 
         /// <summary>
         /// Randomizes the tagged of tagged ceiling lamps at the 
@@ -26,7 +31,9 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         {
             float temperatureSampledValue = temperatureSampler.Sample();
             float intensitySampledValue = intensitySampler.Sample();
-            Color lightColorSampledValue = lightColorSampler.Sample();
+            Color lightColorSampledValue = new Color(
+                colorR.Sample(), colorB.Sample(), colorG.Sample()
+            );
 
             var tags = tagManager.Query<CeilingLampLightRandomizerTag>();
             foreach (var tag in tags)

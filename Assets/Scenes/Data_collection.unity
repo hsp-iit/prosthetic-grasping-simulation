@@ -15537,7 +15537,7 @@ MonoBehaviour:
   constants:
     randomSeed: 539662088
     startIteration: 0
-    iterationCount: 1
+    iterationCount: 1550
     framesPerIteration: 90
     totalIterations: 100
     instanceCount: 1
@@ -15713,16 +15713,27 @@ MonoBehaviour:
           <minAllowed>k__BackingField: 0
           <maxAllowed>k__BackingField: 0
           <shouldCheckValidRange>k__BackingField: 0
-        lightColorSampler:
-          collapsed: 0
-          red:
-            id: 9
-          green:
-            id: 10
-          blue:
-            id: 11
-          alpha:
-            id: 12
+        colorR:
+          range:
+            minimum: 0.4
+            maximum: 1
+          <minAllowed>k__BackingField: 0
+          <maxAllowed>k__BackingField: 0
+          <shouldCheckValidRange>k__BackingField: 0
+        colorG:
+          range:
+            minimum: 0.4
+            maximum: 1
+          <minAllowed>k__BackingField: 0
+          <maxAllowed>k__BackingField: 0
+          <shouldCheckValidRange>k__BackingField: 0
+        colorB:
+          range:
+            minimum: 0.4
+            maximum: 1
+          <minAllowed>k__BackingField: 0
+          <maxAllowed>k__BackingField: 0
+          <shouldCheckValidRange>k__BackingField: 0
     00000005:
       type: {class: WristCameraMovement, ns: UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers, asm: Assembly-CSharp}
       data:
@@ -15762,14 +15773,42 @@ MonoBehaviour:
         prefabs:
           collapsed: 0
           probabilities:
-          - 1
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
+          - 0.06666667
           uniform: 1
           m_Sampler:
-            id: 13
+            id: 9
           m_Categories:
+          - {fileID: 1229072180837702088, guid: 3a3e8a8121afa7b4fa216748404a8ef7, type: 3}
+          - {fileID: 5881371215217655793, guid: 69b2d531affc4a94ab3787e7d7ca056c, type: 3}
+          - {fileID: 5022059233306597773, guid: 9e04e323da53bc04885c3cf9ea24f55f, type: 3}
+          - {fileID: 7368047498386531770, guid: f5957355bdf055f4888e297e086e34af, type: 3}
+          - {fileID: 6042317657627533114, guid: 7e518d9636250de418ef75adc98e5174, type: 3}
+          - {fileID: 1059184208363292479, guid: d0df42ea3ca3487438c82b54b9a9a7e9, type: 3}
+          - {fileID: 4060067511331319883, guid: 459e0b1a09541dc4084c89cda4bc2229, type: 3}
+          - {fileID: 4106617859418414364, guid: 07e73219e2a692b4fbe36da6aa937f12, type: 3}
+          - {fileID: 8292976521222311120, guid: c4997f992a91ed44e80e41efd325bf34, type: 3}
+          - {fileID: 1588656659498682611, guid: b2105bdac14e327408a141c5b765d099, type: 3}
+          - {fileID: 7634789893893615612, guid: 4369d48678df0834a8ddc79980b73d81, type: 3}
+          - {fileID: 912837059941993656, guid: 7b5e2bad155bd1e4789fc4a8db7fd47a, type: 3}
+          - {fileID: 8347150110978495289, guid: 2b1876bf41e3cf8438294cbcd437c365, type: 3}
+          - {fileID: 7905552189546731779, guid: e7bcf3ac7f9074a46b6a256e91a689b0, type: 3}
           - {fileID: 3550976109629809266, guid: 6d649a5a992d72147bc313edca0eb903, type: 3}
         planeObjectPlacement: {fileID: 688003728}
-        numIterationsPerGrasp: 1
+        numIterationsPerGrasp: 50
         materialsObject:
           collapsed: 0
           probabilities:
@@ -15835,7 +15874,7 @@ MonoBehaviour:
           - 0.016666668
           uniform: 1
           m_Sampler:
-            id: 14
+            id: 10
           m_Categories:
           - {fileID: 2100000, guid: 390566450461e114d9de69c978951fb3, type: 2}
           - {fileID: 2100000, guid: 0c4bdf99c89efad43b01d452e946e2b5, type: 2}
@@ -15965,7 +16004,7 @@ MonoBehaviour:
           - 0.016666668
           uniform: 1
           m_Sampler:
-            id: 15
+            id: 11
           m_Categories:
           - {fileID: 2100000, guid: 390566450461e114d9de69c978951fb3, type: 2}
           - {fileID: 2100000, guid: 0c4bdf99c89efad43b01d452e946e2b5, type: 2}
@@ -16059,7 +16098,7 @@ MonoBehaviour:
       type: {class: UniformSampler, ns: UnityEngine.Perception.Randomization.Samplers, asm: Unity.Perception.Runtime}
       data:
         range:
-          minimum: 0.4
+          minimum: 0
           maximum: 1
         <minAllowed>k__BackingField: 0
         <maxAllowed>k__BackingField: 0
@@ -16068,46 +16107,12 @@ MonoBehaviour:
       type: {class: UniformSampler, ns: UnityEngine.Perception.Randomization.Samplers, asm: Unity.Perception.Runtime}
       data:
         range:
-          minimum: 0.4
+          minimum: 0
           maximum: 1
         <minAllowed>k__BackingField: 0
         <maxAllowed>k__BackingField: 0
         <shouldCheckValidRange>k__BackingField: 0
     0000000B:
-      type: {class: UniformSampler, ns: UnityEngine.Perception.Randomization.Samplers, asm: Unity.Perception.Runtime}
-      data:
-        range:
-          minimum: 0.4
-          maximum: 1
-        <minAllowed>k__BackingField: 0
-        <maxAllowed>k__BackingField: 0
-        <shouldCheckValidRange>k__BackingField: 0
-    0000000C:
-      type: {class: ConstantSampler, ns: UnityEngine.Perception.Randomization.Samplers, asm: Unity.Perception.Runtime}
-      data:
-        value: 1
-        <minAllowed>k__BackingField: 0
-        <maxAllowed>k__BackingField: 0
-        <shouldCheckValidRange>k__BackingField: 0
-    0000000D:
-      type: {class: UniformSampler, ns: UnityEngine.Perception.Randomization.Samplers, asm: Unity.Perception.Runtime}
-      data:
-        range:
-          minimum: 0
-          maximum: 1
-        <minAllowed>k__BackingField: 0
-        <maxAllowed>k__BackingField: 0
-        <shouldCheckValidRange>k__BackingField: 0
-    0000000E:
-      type: {class: UniformSampler, ns: UnityEngine.Perception.Randomization.Samplers, asm: Unity.Perception.Runtime}
-      data:
-        range:
-          minimum: 0
-          maximum: 1
-        <minAllowed>k__BackingField: 0
-        <maxAllowed>k__BackingField: 0
-        <shouldCheckValidRange>k__BackingField: 0
-    0000000F:
       type: {class: UniformSampler, ns: UnityEngine.Perception.Randomization.Samplers, asm: Unity.Perception.Runtime}
       data:
         range:
@@ -22621,7 +22626,7 @@ MonoBehaviour:
       type: {class: GraspTypeLabeler, ns: , asm: Assembly-CSharp}
       data:
         enabled: 1
-        annotationId: 94179c03-6258-4cfe-8449-f337fcd24311
+        annotationId: grasp type
         simulationScenario: {fileID: 1398816557}
         viewType: Wrist
     00000001:
@@ -22654,13 +22659,13 @@ MonoBehaviour:
       type: {class: ObjectCountLabeler, ns: UnityEngine.Perception.GroundTruth, asm: Unity.Perception.Runtime}
       data:
         enabled: 0
-        objectCountMetricId: ObjectCount
+        objectCountMetricId: object count
         labelConfig: {fileID: 11400000, guid: 949a871477b820d43921a007e06f7705, type: 2}
     00000006:
       type: {class: RenderedObjectInfoLabeler, ns: UnityEngine.Perception.GroundTruth, asm: Unity.Perception.Runtime}
       data:
         enabled: 0
-        objectInfoMetricId: RenderedObjectInfo
+        objectInfoMetricId: object count
         idLabelConfig: {fileID: 11400000, guid: 949a871477b820d43921a007e06f7705, type: 2}
 --- !u!1 &1795352279
 GameObject:
