@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f09f279848e42cea259348b13bce4c5, type: 3}
+  m_Name: IdLabelConfig
+  m_EditorClassIdentifier: 
+  m_LabelEntries:
+  - label: 006_mustard_bottle
+    id: 1
+  - label: 010_potted_meat_can
+    id: 2
+  - label: 011_banana
+    id: 3
+  - label: 018_plum
+    id: 4
+  - label: 019_pitcher_base
+    id: 5
+  - label: 021_bleach_cleanser
+    id: 6
+  - label: 025_mug
+    id: 7
+  - label: 026_sponge
+    id: 8
+  - label: 029_plate
+    id: 9
+  - label: 031_spoon
+    id: 10
+  - label: 033_spatula
+    id: 11
+  - label: 037_scissors
+    id: 12
+  - label: 040_large_marker
+    id: 13
+  - label: 048_hammer
+    id: 14
+  - label: 055_baseball
+    id: 15
+  - label: pringles[TODO]
+    id: 16
+  - label: red_cube
+    id: 17
+  autoAssignIds: 1
+  startingLabelId: 1

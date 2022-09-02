@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9d0176327854820ab53adc46cbec7c1, type: 3}
+  m_Name: SemanticSegmentationLabelConfig
+  m_EditorClassIdentifier: 
+  m_LabelEntries:
+  - label: 006_mustard_bottle
+    color: {r: 0, g: 0, b: 1, a: 1}
+  - label: 010_potted_meat_can
+    color: {r: 0, g: 1, b: 0, a: 1}
+  - label: 011_banana
+    color: {r: 1, g: 0, b: 0, a: 1}
+  - label: 018_plum
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - label: 019_pitcher_base
+    color: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  - label: 021_bleach_cleanser
+    color: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  - label: 025_mug
+    color: {r: 0.44926423, g: 0.7789514, b: 1, a: 1}
+  - label: 026_sponge
+    color: {r: 0.40283877, g: 1, b: 0.41096422, a: 1}
+  - label: 029_plate
+    color: {r: 0.8870328, g: 1, b: 0.27375436, a: 1}
+  - label: 031_spoon
+    color: {r: 1, g: 0.08305043, b: 0.47778106, a: 1}
+  - label: 033_spatula
+    color: {r: 0.556036, g: 0.015297294, b: 1, a: 1}
+  - label: 037_scissors
+    color: {r: 0.36678812, g: 0.21705484, b: 1, a: 1}
+  - label: 040_large_marker
+    color: {r: 0.69153595, g: 0.4677304, b: 1, a: 1}
+  - label: 048_hammer
+    color: {r: 0.45070267, g: 1, b: 0.59747154, a: 1}
+  - label: 055_baseball
+    color: {r: 1, g: 0.30027103, b: 0.6198929, a: 1}
+  - label: pringles[TODO]
+    color: {r: 0.48212087, g: 1, b: 0.8395222, a: 1}
+  - label: red_cube
+    color: {r: 0.6812195, g: 1, b: 0.31812662, a: 1}
+  skyColor: {r: 0, g: 0, b: 0, a: 1}
