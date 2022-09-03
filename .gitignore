@@ -98,3 +98,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+
+.vsconfig
