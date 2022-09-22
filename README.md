@@ -1,5 +1,8 @@
 
+<div align="center">    
+
 # Grasp Pre-shape Selection by Synthetic Training: <br>Eye-in-hand Shared Control on the Hannes Prosthesis 
+</div>
 
 <img src="https://img.shields.io/badge/Unity-2020.3.11f1-green.svg?style=flat-square" alt="Unity 2020.3.20f1"> <img src="https://img.shields.io/badge/Perception-0.11.2--preview.2-blue.svg?style=flat-square" alt="Perception 0.11.2-preview.2">
 
@@ -22,7 +25,7 @@
   <img src="https://user-images.githubusercontent.com/50639319/191701556-514403b3-4579-4cea-bafb-67aa4d0a20c8.gif">
 </p>
 
-We introduce a synthetic dataset generation pipeline designed for vision-based prosthetic grasping. The method supports multiple grasps per object by overlaying a transparent parallelepiped onto each object part to grasp. The camera follows a straight line towards the object part while recording the video. The scene, initial camera pose and object pose are randomized in each video. We used 15 objects from the YCB dataset. <br>_Our work is accepted to IROS 2022_
+We introduce a synthetic dataset generation pipeline designed for vision-based prosthetic grasping. The method supports multiple grasps per object by overlaying a transparent parallelepiped onto each object part to grasp. The camera follows a straight line towards the object part while recording the video. The scene, initial camera pose and object pose are randomized in each video. We used 15 objects from the YCB dataset. <br>_Our work is accepted to IROS 2022_.
 
 ## Getting started
 - The project uses Unity 2020.3.11.f1. Find the version [here](https://unity3d.com/get-unity/download/archive) and click on the `Unity Hub` button to download.
@@ -48,11 +51,11 @@ We introduce a synthetic dataset generation pipeline designed for vision-based p
 ## Citation
 ```
 @INPROCEEDINGS{vasile2022,
-	author={F. Vasile and E. Maiettini and G. Pasquale and A. Florio and N. Boccardo and L. Natale},
-	booktitle={2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
-	title={Grasp Pre-shape Selection by Synthetic Training: Eye-in-hand Shared Control on the Hannes Prosthesis},
-	year={2022},
-	month={Oct},
+author={F. Vasile and E. Maiettini and G. Pasquale and A. Florio and N. Boccardo and L. Natale},
+booktitle={2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+title={Grasp Pre-shape Selection by Synthetic Training: Eye-in-hand Shared Control on the Hannes Prosthesis},
+year={2022},
+month={Oct},
 }
 ```
 ## Manteiner
