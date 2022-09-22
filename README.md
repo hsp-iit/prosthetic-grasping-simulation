@@ -1,9 +1,7 @@
 
 # Grasp Pre-shape Selection by Synthetic Training: <br>Eye-in-hand Shared Control on the Hannes Prosthesis 
 
-<img src="https://img.shields.io/badge/unity-2020.3.11f1-green.svg?style=flat-square" alt="unity 2020.3.20f1">
-&nbsp;
-<img src="https://img.shields.io/badge/Production-0.11.2--preview.2-blue.svg?style=flat-square" alt="perception 0.11.2-preview.2">
+<img src="https://img.shields.io/badge/Unity-2020.3.11f1-green.svg?style=flat-square" alt="Unity 2020.3.20f1"> <img src="https://img.shields.io/badge/Perception-0.11.2--preview.2-blue.svg?style=flat-square" alt="Perception 0.11.2-preview.2">
 
 
 
