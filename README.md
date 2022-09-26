@@ -22,40 +22,50 @@
   <a href="https://github.com/hsp-iit/prosthetic-grasping-experiments" style="font-size: 25px; text-decoration: none">Experiments repository</a>
   &nbsp; &nbsp;
   <br>
-  <img src="https://user-images.githubusercontent.com/50639319/191701556-514403b3-4579-4cea-bafb-67aa4d0a20c8.gif">
+  <img src="synthetic_samples.gif">
 </p>
 
-We introduce a synthetic dataset generation pipeline designed for vision-based prosthetic grasping. The method supports multiple grasps per object by overlaying a transparent parallelepiped onto each object part to grasp. The camera follows a straight line towards the object part while recording the video. The scene, initial camera pose and object pose are randomized in each video. We used 15 objects from the YCB dataset. <br>_Our work is accepted to IROS 2022_.
+We introduce a synthetic dataset generation pipeline designed for vision-based prosthetic grasping. The method supports multiple grasps per object by overlaying a transparent parallelepiped onto each object part to grasp. The camera follows a straight line towards the object part while recording the video. The scene, initial camera position and object pose are randomized in each video. We used 15 objects from the YCB dataset, where 7 of them have one grasp and 8 of them have multiple grasps, resulting in _31 grasp type - object part_ pairs.<br>_Our work is accepted to IROS 2022_.
 
 ## Getting started
 - The project uses Unity 2020.3.11.f1. Find the version [here](https://unity3d.com/get-unity/download/archive) and click on the `Unity Hub` button to download.
-- It has been tested on Windows 10 and Ubuntu 20.
-- All the necessary packages (e.g. [perception](https://github.com/Unity-Technologies/com.unity.perception)) come pre-installed in the repository, therefore no installation step is required.
+- It has been tested on Windows 10/11.
+- All the necessary packages (e.g. [Perception](https://github.com/Unity-Technologies/com.unity.perception)) come pre-installed in the repository, therefore no installation step is required.
 
 ## Installation
-- Ensure that you have [Git LFS](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage) installed.
-- Clone the repository: `git clone https://github.com/hsp-iit/prosthetic-grasping-simulation`
+- Install [Git for Windows](https://git-scm.com/download/win) (notice that this is a project called Git for Windows, which is not Git itself)
+- Install [Git LFS](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage). 
+- Open a Command Prompt and run `git lfs install` to initialize it.<br>Then, clone the repository: `git clone https://github.com/hsp-iit/prosthetic-grasping-simulation`
+- Git LFS has some problems with the file `Assets/Scene/SampleScene/LightingData.asset`. Therefore, download the original `LightingData.asset` file from [here](https://istitutoitalianotecnologia-my.sharepoint.com/:u:/r/personal/federico_vasile_iit_it/Documents/LightingData.asset?csf=1&web=1&e=1ZSYYa) and replace it.
 - Go on the Unity Hub, click on Open and locate the downloaded repository.
 
 ## Synthetic dataset generation in Unity
 - Once the project is open, ensure that the correct scene is selected: in the `Project` window open `Assets\Scenes` and double-click on `Data_collection.unity` to open the scene.
-- Before running the simulation, remove motion blur and lit shader mode to both (TODO add further instructions).
-- Click on the play button on top to start collecting the synthetic dataset.
-- WARNING: if you want to change settings, e.g. enable bounding box or semantic segmentation labeling, import your own objects or change the number of videos collected, few settings need to be adjusted. These are not explained here for the sake of brevity, feel free to contact me (federico.vasile@iit.it) or open an issue and I will provide you all the instructions.
+- From the top menu bar, open `Edit -> Project Settings`
+  - In `Project Settings`, search for `Lit Shader Mode` and set it to `Both`.
+  ![lit_shader_mode](https://user-images.githubusercontent.com/50639319/192339142-3e17b12c-f81f-4828-ac54-b609185cb2d3.png)
+
+  - In `Project Settings`, search for `Motion Blur` and disable it.
+  ![motion_blur](https://user-images.githubusercontent.com/50639319/192340209-f4924a9e-977d-44c3-aee9-19729006eb70.png)
+
+- [OPTIONAL] The pipeline generates the same number of videos for each _grasp type - object part_ pair. Currently, 50 videos are generated for each pair, resulting in 1550 videos. From the _Hierarchy_ tab (left-hand side) click on the `Simulation Scenario` _GameObject_ and its properties will appear in the _Inspector_ tab (right-hand side). Make sure that the value of `Fixed Length Scenario -> Scenario Properties -> Constants -> Iteration Count` is set to 1550. If you want to generate a different number of videos, change these value accordingly. For instance, to generate 10 videos for each pair, set `Iteration Count` to 31*10=310. If the number is not correct, the execution stops.
+- :rocket: Click on the play button on top to start collecting the synthetic dataset.
+- [WARNING]: if you want to change settings, e.g., enable bounding box or semantic segmentation labeling, import your own objects or change the number of videos collected, few settings need to be adjusted. These are not explained here for the sake of brevity, feel free to contact me (federico.vasile@iit.it) or open an issue and I will provide you all the instructions.
+- When the simulation is over, go on the _Hierarchy_ tab and select `WristCamera`. In the _Inspector_ tab search for `Latest Generated Dataset` and click on _Show folder_ to locate it.
 
 ## Converting the generated videos into our own format
-- When the simulation is over, you can find the labels (along with other metadata) as json files (`captures_***.json`) into the `Dataset023982da-0257-4541-9886-d22172b6c94c` folder (notice that this is an example folder, you will have a different hash code following the `Dataset` name). <br>All the video frames (`rgb_***.png`) are located under the `RGB_another_hash_code_` folder.
+- You can find the labels (along with other metadata) as json files (`captures_***.json`) into the `Dataset023982da-0257-4541-9886-d22172b6c94c` folder (this is an example folder, you will have a different hash code following the `Dataset` name). <br>All the video frames (`rgb_***.png`) are located under the `RGB_another_hash_code_` folder.
 - We provide you a script to convert the frames and labels into the structure used by our [experiments pipeline](https://github.com/hsp-iit/prosthetic-grasping-experiments). Each video will be organized according to the following path: `DATASET_BASE_FOLDER/CATEGORY_NAME/OBJECT_NAME/PRESHAPE_NAME/Wrist_d435/rgb*/*.png`. <br>For example: `ycb_synthetic_dataset/dispenser/006_mustard_bottle/power_no3/Wrist_d435/rgb*/*.png`
 - To run the script, go into `Assets/Scripts/Data_collection/PostProcessing_dataset` and copy `script_convert_dataset.py` into the folder of your synthetic dataset generated (i.e. the folder containing the `Dataset_hash_code_` and `RGB_another_hash_code_` folders). Go into the synthetic dataset folder and run the script: `python3 script_convert_dataset.py`
 
 ## Citation
 ```
-@INPROCEEDINGS{vasile2022,
-author={F. Vasile and E. Maiettini and G. Pasquale and A. Florio and N. Boccardo and L. Natale},
-booktitle={2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
-title={Grasp Pre-shape Selection by Synthetic Training: Eye-in-hand Shared Control on the Hannes Prosthesis},
-year={2022},
-month={Oct},
+@inproceedings{vasile2022,
+    author    = {F. Vasile and E. Maiettini and G. Pasquale and A. Florio and N. Boccardo and L. Natale},
+    title     = {Grasp Pre-shape Selection by Synthetic Training: Eye-in-hand Shared Control on the Hannes Prosthesis},
+    booktitle = {2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+    year      = {2022},
+    month     = {Oct},
 }
 ```
 ## Manteiner
