@@ -25,7 +25,7 @@
   <img src="synthetic_samples.gif">
 </p>
 
-We introduce a synthetic dataset generation pipeline designed for vision-based prosthetic grasping. The method supports multiple grasps per object by overlaying a transparent parallelepiped onto each object part to grasp. The camera follows a straight line towards the object part while recording the video. The scene, initial camera position and object pose are randomized in each video. We used 15 objects from the YCB dataset, where 7 of them have one grasp and 8 of them have multiple grasps, resulting in _31 grasp type - object part_ pairs.<br>_Our work is accepted to IROS 2022_.
+We introduce a synthetic dataset generation pipeline designed for vision-based prosthetic grasping. The method supports multiple grasps per object by overlaying a transparent parallelepiped onto each object part to grasp. The camera follows a straight line towards the object part while recording the video. The scene, initial camera position and object pose are randomized in each video. <br>We used 15 objects from the YCB dataset, where 7 of them have one grasp and 8 of them have multiple grasps, resulting in _31 grasp type - object part_ pairs.<br>_Our work is accepted to IROS 2022_.
 
 ## Getting started
 - The project uses Unity 2020.3.11.f1. Find the version [here](https://unity3d.com/get-unity/download/archive) and click on the `Unity Hub` button to download.
@@ -40,21 +40,21 @@ We introduce a synthetic dataset generation pipeline designed for vision-based p
 - Go on the Unity Hub, click on Open and locate the downloaded repository.
 
 ## Synthetic dataset generation in Unity
-- Once the project is open, ensure that the correct scene is selected: in the `Project` window open `Assets\Scenes` and double-click on `Data_collection.unity` to open the scene.
-- From the top menu bar, open `Edit -> Project Settings`
+- Once the project is open, ensure that the correct scene is selected: in the `Project` tab open `Assets\Scenes` and double-click on `Data_collection.unity` to open the scene.
+- From the top bar menu, open `Edit -> Project Settings`
   - In `Project Settings`, search for `Lit Shader Mode` and set it to `Both`.
   ![lit_shader_mode](https://user-images.githubusercontent.com/50639319/192339142-3e17b12c-f81f-4828-ac54-b609185cb2d3.png)
 
   - In `Project Settings`, search for `Motion Blur` and disable it.
   ![motion_blur](https://user-images.githubusercontent.com/50639319/192340209-f4924a9e-977d-44c3-aee9-19729006eb70.png)
 
-- [OPTIONAL] The pipeline generates the same number of videos for each _grasp type - object part_ pair. Currently, 50 videos are generated for each pair, resulting in 1550 videos. From the _Hierarchy_ tab (left-hand side) click on the `Simulation Scenario` _GameObject_ and its properties will appear in the _Inspector_ tab (right-hand side). Make sure that the value of `Fixed Length Scenario -> Scenario Properties -> Constants -> Iteration Count` is set to 1550. If you want to generate a different number of videos, change these value accordingly. For instance, to generate 10 videos for each pair, set `Iteration Count` to 31*10=310. If the number is not correct, the execution stops.
+- [OPTIONAL] The pipeline generates the same number of videos for each _grasp type - object part_ pair (recall, there are currently 31 pairs). 50 videos are generated for each pair, resulting in 1550 videos. From the `Hierarchy` tab (left-hand side) click on `Simulation Scenario` and its properties will appear in the `Inspector` tab (right-hand side). Make sure that the value of `Fixed Length Scenario -> Scenario Properties -> Constants -> Iteration Count` is set to 1550. If you want to generate a different number of videos, change this value accordingly. For instance, to generate 10 videos for each pair, set `Iteration Count` to 31*10=310. If the number is not correct, the execution stops.
 - :rocket: Click on the play button on top to start collecting the synthetic dataset.
-- [WARNING]: if you want to change settings, e.g., enable bounding box or semantic segmentation labeling, import your own objects or change the number of videos collected, few settings need to be adjusted. These are not explained here for the sake of brevity, feel free to contact me (federico.vasile@iit.it) or open an issue and I will provide you all the instructions.
-- When the simulation is over, go on the _Hierarchy_ tab and select `WristCamera`. In the _Inspector_ tab search for `Latest Generated Dataset` and click on _Show folder_ to locate it.
+- [WARNING]: if you want to change settings, e.g., enable bounding box/semantic segmentation labeling or import your own objects, few settings need to be adjusted. These are not explained here for the sake of brevity, feel free to contact me (federico.vasile@iit.it) or open an issue and I will provide you all the instructions.
+- When the simulation is over, go on the `Hierarchy` tab and select `WristCamera`. In the `Inspector` tab search for `Latest Generated Dataset` and click on `Show folder` to locate the dataset folder.
 
 ## Converting the generated videos into our own format
-- You can find the labels (along with other metadata) as json files (`captures_***.json`) into the `Dataset023982da-0257-4541-9886-d22172b6c94c` folder (this is an example folder, you will have a different hash code following the `Dataset` name). <br>All the video frames (`rgb_***.png`) are located under the `RGB_another_hash_code_` folder.
+- Once you are in the dataset folder mentioned above, you can find the labels (along with other metadata) as json files (`captures_***.json`) into the `Dataset023982da-0257-4541-9886-d22172b6c94c` folder (this is an example folder, you will have a different hash code following the `Dataset` name). <br>All the video frames (`rgb_***.png`) are located under the `RGB_another_hash_code_` folder.
 - We provide you a script to convert the frames and labels into the structure used by our [experiments pipeline](https://github.com/hsp-iit/prosthetic-grasping-experiments). Each video will be organized according to the following path: `DATASET_BASE_FOLDER/CATEGORY_NAME/OBJECT_NAME/PRESHAPE_NAME/Wrist_d435/rgb*/*.png`. <br>For example: `ycb_synthetic_dataset/dispenser/006_mustard_bottle/power_no3/Wrist_d435/rgb*/*.png`
 - To run the script, go into `Assets/Scripts/Data_collection/PostProcessing_dataset` and copy `script_convert_dataset.py` into the folder of your synthetic dataset generated (i.e. the folder containing the `Dataset_hash_code_` and `RGB_another_hash_code_` folders). Go into the synthetic dataset folder and run the script: `python3 script_convert_dataset.py`
 
