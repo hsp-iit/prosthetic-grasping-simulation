@@ -101,3 +101,12 @@ $RECYCLE.BIN/
 
 
 .vsconfig
+
+app.config
+
+# Ignore everything in these two folders...
+Assets/Scripts/*
+Assets/Scenes/*
+# ...but not the files under the folder starting with Data_collection
+!Assets/Scripts/Data_collection*
+!Assets/Scenes/Data_collection*
