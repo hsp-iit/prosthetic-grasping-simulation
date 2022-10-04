@@ -11,9 +11,9 @@
 <p align="center">
   <a href="https://arxiv.org/abs/2203.09812" style="font-size: 25px; text-decoration: none">Paper</a>
   &nbsp; &nbsp;
-  <a href="" style="font-size: 25px; text-decoration: none">Demonstration videoTODO</a>
+  <a href="https://drive.google.com/file/d/16QcD1yprsNhxPc93EbLV_Mby2FlcJcJ7/view?usp=sharing" style="font-size: 25px; text-decoration: none">Demonstration video</a>
   &nbsp; &nbsp;
-  <a href="" style="font-size: 25px; text-decoration: none">Presentation videoTODO</a>
+  <a href="https://drive.google.com/file/d/1qy1HoTzGodUyE1Ao1ezXsuYVNoqWn7Gg/view?usp=sharing" style="font-size: 25px; text-decoration: none">Presentation video</a>
   <br>
   <a href="" style="font-size: 25px; text-decoration: none">Synthetic dataset generatedTODO</a>
   &nbsp; &nbsp;
@@ -36,7 +36,7 @@ We introduce a synthetic dataset generation pipeline designed for vision-based p
 - Install [Git for Windows](https://git-scm.com/download/win) (notice that this is a project called Git for Windows, which is not Git itself)
 - Install [Git LFS](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage). 
 - Open a Command Prompt and run `git lfs install` to initialize it.<br>Then, clone the repository: `git clone https://github.com/hsp-iit/prosthetic-grasping-simulation`
-- Git LFS has some problems with the file `Assets/Scene/SampleScene/LightingData.asset`. Therefore, download the original `LightingData.asset` file from [here](https://istitutoitalianotecnologia-my.sharepoint.com/:u:/r/personal/federico_vasile_iit_it/Documents/LightingData.asset?csf=1&web=1&e=1ZSYYa) and replace it.
+- Git LFS has some problems with the file `Assets/Scene/SampleScene/LightingData.asset`. Therefore, download the original `LightingData.asset` file from [here](https://drive.google.com/file/d/1b3FNFQTLm2TPxQbnImntQfC2IqRy9eas/view?usp=sharing) and replace it.
 - Go on the Unity Hub, click on Open and locate the downloaded repository.
 
 ## Synthetic dataset generation in Unity
