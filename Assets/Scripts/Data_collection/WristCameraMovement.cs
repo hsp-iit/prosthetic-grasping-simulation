@@ -610,8 +610,8 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
                 // the GraspTypeLabeler, since the current iteration will be labeled with 
                 // the activate grasp child of the object.
                 graspToExecute.SetActive(true);
-                Debug.LogError("[INFO] Starting sequences for [" 
-                               + objInScene.name + "][" + graspToExecute.name + "]");
+                Debug.Log("[INFO] Starting sequences for [" 
+                          + objInScene.name + "][" + graspToExecute.name + "]");
             }
 
             // Check whether the camera-to-grasp straight line trajectory is collision-free
