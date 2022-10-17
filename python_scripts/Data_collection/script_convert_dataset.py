@@ -157,7 +157,7 @@ def main(args):
                     with open(os.path.join(path_to_metadata, 'data.log'), 'w') as data_log:
                         # sample row from the real dataset:
                         #  frame_id timestamp_in timestamp_out object instance grasp_type preshape elevation approach ojbAzimuth objElevation
-                        out_data_log = 'junk junk junk {} {} {} {} elevation_0 approach_0 objAzimuth_0 "objElevation_+90"'.format(
+                        out_data_log = 'junk junk junk {} {} {} {} elevation_0 approach_0 objAzimuth_0 objElevation_+90'.format(
                             object_name, instance_name, grasp_type, preshape
                         )
                         data_log.write(out_data_log)

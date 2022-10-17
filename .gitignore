@@ -104,9 +104,11 @@ $RECYCLE.BIN/
 
 app.config
 
-# Ignore everything in these two folders...
+# Ignore everything in these folders...
 Assets/Scripts/*
 Assets/Scenes/*
+python_scripts/*
 # ...but not the files under the folder starting with Data_collection
 !Assets/Scripts/Data_collection*
 !Assets/Scenes/Data_collection*
+!python_scripts/Data_collection*
