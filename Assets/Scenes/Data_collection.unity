@@ -22665,7 +22665,7 @@ MonoBehaviour:
       type: {class: RenderedObjectInfoLabeler, ns: UnityEngine.Perception.GroundTruth, asm: Unity.Perception.Runtime}
       data:
         enabled: 0
-        objectInfoMetricId: object count
+        objectInfoMetricId: RenderedObjectInfo
         idLabelConfig: {fileID: 11400000, guid: 949a871477b820d43921a007e06f7705, type: 2}
 --- !u!1 &1795352279
 GameObject:
