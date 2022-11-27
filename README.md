@@ -15,9 +15,9 @@
   &nbsp; &nbsp;
   <a href="https://drive.google.com/file/d/1qy1HoTzGodUyE1Ao1ezXsuYVNoqWn7Gg/view?usp=sharing" style="font-size: 25px; text-decoration: none">Presentation video</a>
   <br>
-  <a href="" style="font-size: 25px; text-decoration: none">Synthetic dataset generatedTODO</a>
+  <a href="https://zenodo.org/record/7327516#.Y4Mu23bMKF5" style="font-size: 25px; text-decoration: none">Synthetic dataset generated</a>
   &nbsp; &nbsp;
-  <a href="" style="font-size: 25px; text-decoration: none">Real dataset collectedTODO</a>
+  <a href="https://zenodo.org/record/7327150#.Y4Mu4HbMKF5" style="font-size: 25px; text-decoration: none">Real dataset collected</a>
   &nbsp; &nbsp;
   <a href="https://github.com/hsp-iit/prosthetic-grasping-experiments" style="font-size: 25px; text-decoration: none">Experiments repository</a>
   &nbsp; &nbsp;
@@ -48,7 +48,8 @@ We introduce a synthetic dataset generation pipeline designed for vision-based p
   - In `Project Settings`, search for `Motion Blur` and disable it.
   ![motion_blur](https://user-images.githubusercontent.com/50639319/192340209-f4924a9e-977d-44c3-aee9-19729006eb70.png)
 
-- [OPTIONAL] The pipeline generates the same number of videos for each _grasp type - object part_ pair (recall, there are currently 31 pairs). 50 videos are generated for each pair, resulting in 1550 videos. From the `Hierarchy` tab (left-hand side) click on `Simulation Scenario` and its properties will appear in the `Inspector` tab (right-hand side). Make sure that the value of `Fixed Length Scenario -> Scenario Properties -> Constants -> Iteration Count` is set to 1550. If you want to generate a different number of videos, change this value accordingly. For instance, to generate 10 videos for each pair, set `Iteration Count` to 31*10=310. If the number is not correct, the execution stops.
+- [OPTIONAL] The pipeline generates the same number of videos for each _grasp type - object part_ pair (recall, there are currently 31 pairs). 50 videos are generated for each pair, resulting in 1550 videos. From the `Hierarchy` tab (left-hand side) click on `Simulation Scenario` and its properties will appear in the `Inspector` tab (right-hand side). Make sure that the value of `Fixed Length Scenario -> Scenario Properties -> Constants -> Iteration Count` is set to 1550 <u>and</u> the value of `Fixed Length Scenario -> Randomizers -> WristCameraMovement -> Num Iterations Per Grasp` is set to 50. If you want to generate a different number of videos, change these values accordingly. For instance, to generate 10 videos for each pair, set `Iteration Count` to 31*10=310 <u>and</u> `Num Iterations Per Grasp` to 10. If the numbers are not consistent, the execution stops.
+- [OPTIONAL] To set the dataset output folder, go on `File -> Project Settings -> Perception` and click on the `Change Folder` button to set a net `Base Path`
 - :rocket: Click on the play button on top to start collecting the synthetic dataset.
 - [WARNING]: if you want to change settings, e.g., enable bounding box/semantic segmentation labeling or import your own objects, few settings need to be adjusted. These are not explained here for the sake of brevity, feel free to contact me (federico.vasile@iit.it) or open an issue and I will provide you all the instructions.
 - When the simulation is over, go on the `Hierarchy` tab and select `WristCamera`. In the `Inspector` tab search for `Latest Generated Dataset` and click on `Show folder` to locate the dataset folder.
@@ -56,7 +57,7 @@ We introduce a synthetic dataset generation pipeline designed for vision-based p
 ## Converting the generated videos into our own format
 - Once you are in the dataset folder mentioned above, you can find the labels (along with other metadata) as json files (`captures_***.json`) into the `Dataset023982da-0257-4541-9886-d22172b6c94c` folder (this is an example folder, you will have a different hash code following the `Dataset` name). <br>All the video frames (`rgb_***.png`) are located under the `RGB_another_hash_code_` folder.
 - We provide a script to convert the frames and labels into the structure used by our [experiments pipeline](https://github.com/hsp-iit/prosthetic-grasping-experiments). Each video will be organized according to the following path: `DATASET_BASE_FOLDER/CATEGORY_NAME/OBJECT_NAME/PRESHAPE_NAME/Wrist_d435/rgb*/*.png`. <br>For example: `ycb_synthetic_dataset/dispenser/006_mustard_bottle/power_no3/Wrist_d435/rgb*/*.png`
-- To run the script, go into `python_scripts/Data_collection` and copy `script_convert_dataset.py` into the folder of your synthetic dataset generated (i.e. the folder containing the `Dataset_hash_code_` and `RGB_another_hash_code_` folders). Go into the synthetic dataset folder and run the script: `python3 script_convert_dataset.py`
+- To run the script, go into `python_scripts/Data_collection` and copy `convert_dataset.py` into the folder of your synthetic dataset generated (i.e. the folder containing the `Dataset_hash_code_` and `RGB_another_hash_code_` folders). Go into the synthetic dataset folder and run the script: `python3 convert_dataset.py`
 
 ## Citation
 ```
@@ -68,16 +69,16 @@ We introduce a synthetic dataset generation pipeline designed for vision-based p
     month     = {Oct},
 }
 ```
-## Manteiner
-This repository is manteined by:
+## Mantainer
+This repository is mantained by:
 | | |
 |:---:|:---:|
 | [<img src="https://github.com/FedericoVasile1.png" width="40">](https://github.com/FedericoVasile1) | [@FedericoVasile1](https://github.com/FedericoVasile1) |
 
 ## Related links:
 - For further details about our synthetic data generation pipeline, please refer to our [paper](https://arxiv.org/abs/2203.09812) (specifically SEC. IV) and feel free to contact me: federico.vasile@iit.it
-- A demonstration video of our model trained on the synthetic data and tested on the Hannes prosthesis is available [hereTODO]()
-- A presentation video summarizing our work is available [hereTODO]()
-- The synthetic dataset used in our experiments is available for download [hereTODO]()
-- Along with the synthetic data generation pipeline, we collected a real dataset, available for download [hereTODO]()
-- To reproduce our experiments  you need both the real and the synthetic dataset. To use our [experiments pipeline](https://github.com/hsp-iit/prosthetic-grasping-experiments), ensure that both datasets are in the correct format. If you download our datasets, they already are in the correct format. Otherwise, to convert your synthetic dataset generated into our own format, use the script discussed above.
+- A demonstration video of our model trained on the synthetic data and tested on the Hannes prosthesis is available [here](https://drive.google.com/file/d/16QcD1yprsNhxPc93EbLV_Mby2FlcJcJ7/view?usp=sharing)
+- A presentation video summarizing our work is available [here](https://drive.google.com/file/d/1qy1HoTzGodUyE1Ao1ezXsuYVNoqWn7Gg/view?usp=sharing)
+- The synthetic dataset used in our experiments is available for download [here](https://zenodo.org/record/7327516#.Y4Mu23bMKF5)
+- Along with the synthetic data generation pipeline, we collected a real dataset, available for download [here](https://zenodo.org/record/7327150#.Y4Mu4HbMKF5)
+- To reproduce our experiments, you need both the real and the synthetic dataset. To use our [experiments pipeline](https://github.com/hsp-iit/prosthetic-grasping-experiments), ensure that both datasets are in the correct format (we provide a script in the <i>experiments pipeline</i> to automatically download and correctly arrange both datasets).
