@@ -43,9 +43,9 @@ MonoBehaviour:
     id: 14
   - label: 055_baseball
     id: 15
-  - label: pringles[TODO]
+  - label: 001_chips_can
     id: 16
-  - label: red_cube
+  - label: red_wood_block
     id: 17
   autoAssignIds: 1
   startingLabelId: 1

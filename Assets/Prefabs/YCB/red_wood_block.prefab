@@ -104,7 +104,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3550976109629809277}
-  - component: {fileID: 9050526038841738497}
+  - component: {fileID: 1670270013322392658}
   m_Layer: 0
   m_Name: red_wood_block
   m_TagString: Untagged
@@ -127,7 +127,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &9050526038841738497
+--- !u!114 &1670270013322392658
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -140,7 +140,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   labels:
-  - red_cube
+  - red_wood_block
   useAutoLabeling: 1
   autoLabelingSchemeType: AssetNameLabelingScheme
 --- !u!1 &3550976110162005980

@@ -43,8 +43,8 @@ MonoBehaviour:
     color: {r: 0.45070267, g: 1, b: 0.59747154, a: 1}
   - label: 055_baseball
     color: {r: 1, g: 0.30027103, b: 0.6198929, a: 1}
-  - label: pringles[TODO]
-    color: {r: 0.48212087, g: 1, b: 0.8395222, a: 1}
-  - label: red_cube
-    color: {r: 0.6812195, g: 1, b: 0.31812662, a: 1}
+  - label: 001_chips_can
+    color: {r: 0.5345774, g: 1, b: 0.017479002, a: 1}
+  - label: red_wood_block
+    color: {r: 0.2078822, g: 1, b: 0.08624202, a: 1}
   skyColor: {r: 0, g: 0, b: 0, a: 1}
