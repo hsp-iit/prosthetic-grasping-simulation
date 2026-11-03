@@ -191,7 +191,7 @@ Full guide (keys, commands, reading the report, editing the preshapes, troublesh
 1. Clone the Menagerie next to this repository (only `shadow_hand/` is used; another location is given with `--menagerie`), and install MuJoCo:
    ```
    git clone https://github.com/google-deepmind/mujoco_menagerie.git ../mujoco_menagerie
-   python3 -m venv ~/.venvs/mujoco && ~/.venvs/mujoco/bin/pip install mujoco numpy pillow
+   python3 -m venv ~/.venvs/mujoco && ~/.venvs/mujoco/bin/pip install mujoco numpy pillow scipy scikit-learn
    ```
 2. In Unity, `Tools -> Grasp Objects -> Export Objects for MuJoCo` writes every YCB and GSO prefab to `python_scripts/MuJoCo/exported/<name>/` (git-ignored, about 280 MB): the mesh of `textured` and the grasp parallelepipeds in the frame of the prefab root, converted to the MuJoCo frame (right-handed, z up), and the texture. Export again after changing the grasp boxes.
 3. Run the viewer:

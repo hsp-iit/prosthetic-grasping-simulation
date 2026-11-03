@@ -28,7 +28,7 @@ virtual environment:
 cd ~/PycharmProjects
 git clone https://github.com/google-deepmind/mujoco_menagerie.git
 python3 -m venv ~/.venvs/mujoco
-~/.venvs/mujoco/bin/pip install mujoco numpy pillow
+~/.venvs/mujoco/bin/pip install mujoco numpy pillow scipy scikit-learn
 ```
 
 If the Menagerie is somewhere else, pass `--menagerie /path/to/mujoco_menagerie` to the viewer.
@@ -225,7 +225,80 @@ To tune a preshape: keep the viewer open on an object using it, edit `shadow_pre
 To add a preshape, add an entry with a new name: it is available with `s <name>` and the `Up` / `Down`
 keys. A grasp uses it automatically only if `GraspCatalog.cs` maps its grasp type to that name.
 
-## 8. Limitations
+## 8. Batch check of all the grasp boxes, and calibration
+
+`grasp_check.py` runs, without a window, every grasp box of every exported object (about 30 s for the 66
+boxes with 4 processes). It needs two more packages:
+
+```
+~/.venvs/mujoco/bin/pip install scipy scikit-learn
+~/.venvs/mujoco/bin/python python_scripts/MuJoCo/grasp_check.py                 # all objects
+~/.venvs/mujoco/bin/python python_scripts/MuJoCo/grasp_check.py 025_mug plum    # some objects
+```
+
+For every box, every preshape is tried with 6 hand placements (both thumb sides, offsets of -10, 0 and
++10 mm). Each trial measures how deep the open hand goes into the object, closes the hand, and scores
+the contacts against what the preshape needs:
+
+| Preshape | Needs once closed |
+|---|---|
+| `power_no3` | thumb + 3 fingers, and the palm or proximal phalanges touching |
+| `pinch_no3` | thumb + 2 fingers, palm not touching |
+| `pinch_3` | thumb + index or middle, palm not touching |
+| `lateral_no3` | thumb + index |
+
+A trial is **feasible** when all its needs are met, the open hand goes at most 5 mm into the object and
+a contact is within 30 mm of the box. The thresholds and needs are at the top of `grasp_check.py`.
+
+Outputs in `python_scripts/MuJoCo/exported/_check/`:
+
+- `report.md`: start here.
+  - **Check of the labeled preshapes**: the boxes not feasible with their own preshape, worst first,
+    with the reason and the preshapes that do work. Open them in the viewer (`g <index>`) and in Unity.
+  - **Calibration**: how well the preshape can be predicted automatically, compared with your labels.
+  - **Per grasp**: the geometry at each box and the predictions.
+- `grasps.csv`: one row per box (scores of all preshapes, geometry, predictions).
+- `trials.csv`: one row per trial (useful to see which placement worked).
+
+### Geometry of the part at a box
+
+`grasp_geometry.py` measures the object part at each box on the mesh only. It does not use the box
+size, which for the GSO automatic grasps is set by the grasp type and would give the label away. The
+mesh is sliced through the box center, across the palm width, and the piece closest to the box is
+kept, e.g. the handle of a mug and not its body:
+
+- `d1` x `d2`: the size of that piece (thick or thin, round or flat), also within 40 mm of the box
+  (`d1_local` x `d2_local`), so that a cap on a bottle still reads as small;
+- `L`: how far it continues along the palm width (a marker is long, a cap short, a plate rim very short).
+
+### Calibration
+
+Four ways of choosing the preshape are compared with the labels:
+
+- `baseline`: always the most frequent preshape (power);
+- `physics`: the preshape with the best score, nothing fitted;
+- `geometry`: a decision tree of depth 3 on the geometry;
+- `geometry + physics`: the same tree, also given the best score of each preshape.
+
+The trees are evaluated without seeing the object being predicted: **leave one object out**, and the
+stricter **leave one category out** (all the mugs held out together), which is closer to a truly new kind
+of object. The fitted trees are printed in the report, so the rules can be read.
+
+Results on 2026-11-03 (66 boxes of 35 objects):
+
+| Predictor | Leave one object out | Leave one category out |
+|---|---|---|
+| baseline | 50% | 50% |
+| physics | 59% | 59% |
+| geometry | 65% | 56% |
+| geometry + physics | 83% | 73% |
+
+Physics alone hardly beats the baseline: it says whether a preshape *can* hold the part, and often
+several can. Physics and geometry together do clearly better, but not well enough to label new objects
+without checking. Use the predictions as suggestions to review. With 66 boxes the trees are small and can
+change when objects are added: rerun the check after adding objects.
+
+## 9. Limitations
 
 - **Convex hulls**: MuJoCo collides with the convex hull of the object mesh, so hollow parts (the inside of a
   mug, of a shoe, the hole of a handle) count as solid. The visual mesh is still the real one.
@@ -235,7 +308,7 @@ keys. A grasp uses it automatically only if `GraspCatalog.cs` maps its grasp typ
   would be lifted.
 - **One object per window**: `obj <name>` reopens the window with the new object.
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 | Problem | Fix |
 |---|---|
