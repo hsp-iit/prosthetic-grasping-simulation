@@ -293,7 +293,7 @@ class PreshapeScene:
             geom = self.model.geom(f"grasp_{i}").id
             current = i == self.grasp_index
             color = BOX_COLOR if current else OTHER_BOX_COLOR
-            self.model.geom_rgba[geom] = [*color, 0.45 if current else 0.12]
+            self.model.geom_rgba[geom] = [*color, 0.6 if current else 0.4]
 
     def toggle_close(self):
         if self.closing_since is None:
