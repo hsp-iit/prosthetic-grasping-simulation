@@ -34,7 +34,7 @@ public static class MujocoGraspExporter
     /// before, or the repository next to this Unity project, or asked to the user.
     /// Returns null if none is chosen
     /// </summary>
-    static string FindOutDir()
+    internal static string FindOutDir()
     {
         string saved = EditorPrefs.GetString(OUT_DIR_PREF, "");
         if (!string.IsNullOrEmpty(saved) && Directory.Exists(saved))

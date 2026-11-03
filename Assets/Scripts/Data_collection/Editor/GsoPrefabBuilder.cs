@@ -235,7 +235,7 @@ public static class GsoPrefabBuilder
         return PREFABS_DIR + "/" + name + ".prefab";
     }
 
-    static Material GraspMaterial()
+    internal static Material GraspMaterial()
     {
         return AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(GRASP_MATERIAL_GUID));
     }
@@ -245,7 +245,7 @@ public static class GsoPrefabBuilder
     /// YCB ones. Position and rotation are in the frame of the parent of textured (the
     /// object root)
     /// </summary>
-    static GameObject CreateGraspBox(Transform textured, string name, Vector3 position, Quaternion rotation,
+    internal static GameObject CreateGraspBox(Transform textured, string name, Vector3 position, Quaternion rotation,
                                      Vector3 size, Material graspMaterial)
     {
         GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
