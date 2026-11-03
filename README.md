@@ -183,6 +183,27 @@ The GSO prefabs are upright and textured with their original texture (labeled as
 - The category of a GSO object is stored in the `GraspObjectInfo` component of its prefab; objects without it must be listed in `GraspCatalog.instance2object`, otherwise the simulation stops with an error.
 - Attribution: Google Scanned Objects, Google LLC, [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) (the license of each object is in its `metadata.pbtxt`).
 
+## Checking the preshapes against the grasp boxes in MuJoCo
+The [Shadow Hand](https://github.com/google-deepmind/mujoco_menagerie/tree/main/shadow_hand) of MuJoCo Menagerie (24 joints, 20 position actuators) can be placed on each grasp parallelepiped of an object, in the preshape of that grasp, and closed on the object, to see whether the boxes and the preshapes make sense together.
+
+1. Clone the Menagerie next to this repository (only `shadow_hand/` is used; another location is given with `--menagerie`), and install MuJoCo:
+   ```
+   git clone https://github.com/google-deepmind/mujoco_menagerie.git ../mujoco_menagerie
+   python3 -m venv ~/.venvs/mujoco && ~/.venvs/mujoco/bin/pip install mujoco numpy pillow
+   ```
+2. In Unity, `Tools -> Grasp Objects -> Export Objects for MuJoCo` writes every YCB and GSO prefab to `python_scripts/MuJoCo/exported/<name>/` (git-ignored, about 280 MB): the mesh of `textured` and the grasp parallelepipeds in the frame of the prefab root, converted to the MuJoCo frame (right-handed, z up), and the texture. Export again after changing the grasp boxes.
+3. Run the viewer:
+   ```
+   ~/.venvs/mujoco/bin/python python_scripts/MuJoCo/preshape_viewer.py --list
+   ~/.venvs/mujoco/bin/python python_scripts/MuJoCo/preshape_viewer.py 025_mug
+   ```
+   The terminal shows, for the current grasp, the distance of each fingertip from the box and the hand parts touching the object (with their distance from the box). Keys in the viewer window: `Page Up`/`Page Down` next/previous grasp, `Up`/`Down` preshape (`auto` = the one of the grasp), `Enter` close the hand / back to the preshape, `Home` turn the hand by 180 degrees, `End` approach from the other end of the box. Commands typed in the terminal (`help` lists them) also move the hand along the approach (`in`, `out`, `o <mm>`), reload the preshapes (`r`) and open another object (`obj <name>`).
+4. `--render DIR` saves, without a window, an image per grasp with the open and the closed hand (side and three-quarter views), with the same report.
+
+The hand is aligned with a parallelepiped as the wrist camera is: the palm faces the approach direction (z axis, signed towards the object center, since its sign is arbitrary in the YCB prefabs and the camera may reach either end), the palm width is along x (the thumb opposite to x by default, e.g. up for a standing mug grasped from the side), and the grasp point of the preshape is at the center of the box. The preshapes are joint angles in `python_scripts/MuJoCo/shadow_preshapes.json`, one per preshape of `GraspCatalog`: `open` (approaching), `closed` (the actuator targets when closing; the contacts stop the fingers earlier) and `grasp_point` (`palm`, i.e. 3.5 cm in front of the finger bases, for power grasps; the point where the thumb meets the listed fingertips for pinches). They are a first approximation: tune them with the viewer (`r` reloads them).
+
+Limitations: the object is static and collides through the convex hull of its mesh (MuJoCo's default), so the hollow of a mug or the inside of a shoe is filled; the Shadow Hand is larger than the Hannes hand and has more degrees of freedom, hence its preshapes only approximate the Hannes ones; there is no table.
+
 ## Synthetic dataset generation with a Linux build
 A standalone build uses less GPU memory than the Editor and is the most reliable way to generate the full dataset.
 - Set the scenario values (`Iteration Count`, `Frames Per Iteration`, `Num Iterations Per Grasp`) in the `Data_collection` scene as described above and save the scene.
