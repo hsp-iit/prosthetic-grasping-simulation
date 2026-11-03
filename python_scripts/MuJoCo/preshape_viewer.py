@@ -118,14 +118,20 @@ def mat2quat(mat):
     return quat
 
 
-def build_model(hand_xml, prefix, obj):
+def build_model(hand_xml, prefix, obj, mass=None):
     """The hand of the Menagerie mounted on a mocap body, without gravity, and the
-    object (static) with its grasp parallelepipeds (visual only, no collision)"""
+    object with its grasp parallelepipeds (visual only, no collision). The object is
+    static, or with a mass (kg) free to move (the lift test of grasp_check.py). With a
+    mass, the hand is a free
+    body welded to the mocap body hand_target (a mocap body has no velocity, hence its
+    contacts carry no friction when it moves)"""
     text = hand_xml.read_text()
     text = text.replace('meshdir="assets"', f'meshdir="{hand_xml.parent / "assets"}"')
     text = text.replace("<option ", '<option gravity="0 0 0" ', 1)
     forearm = text.index(f'<body name="{prefix}forearm"')
-    text = text[:forearm] + '<body name="hand_base" mocap="true">\n' + text[forearm:]
+    base = ('<body name="hand_base" mocap="true">\n' if mass is None
+            else '<body name="hand_target" mocap="true"/>\n<body name="hand_base"><freejoint name="hand_free"/>\n')
+    text = text[:forearm] + base + text[forearm:]
     end = text.index("</worldbody>")
     text = text[:end] + "</body>\n" + text[end:]
 
@@ -143,6 +149,14 @@ def build_model(hand_xml, prefix, obj):
         boxes.append(f'<geom name="grasp_{i}" type="box" pos="{pos}" quat="{quat}" size="{size}" '
                      'contype="0" conaffinity="0" group="1" rgba="0.9 0.6 0.1 0.15"/>')
     boxes = "\n    ".join(boxes)
+    object_geom = (f'<geom name="object" type="mesh" mesh="object" material="object" group="0"'
+                   f' condim="6" friction="0.8 0.01 0.003"/>')
+    equality = ""
+    if mass is not None:
+        object_geom = (f'<body name="object"><freejoint/>'
+                       f'<geom name="object" type="mesh" mesh="object" material="object" group="0" '
+                       f'mass="{mass}" condim="4" priority="1" friction="1 0.005 0.0001"/></body>')
+        equality = '<equality><weld name="drive" body1="hand_base" body2="hand_target" solref="0.005 1"/></equality>'
     scene = f"""
   <visual>
     <global azimuth="150" elevation="-20" offwidth="1280" offheight="960"/>
@@ -156,10 +170,10 @@ def build_model(hand_xml, prefix, obj):
   </asset>
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
-    <geom name="object" type="mesh" mesh="object" material="object" group="0"
-      condim="6" friction="0.8 0.01 0.003"/>
+    {object_geom}
     {boxes}
   </worldbody>
+  {equality}
 """
     end = text.rindex("</mujoco>")
     return mujoco.MjModel.from_xml_string(text[:end] + scene + "</mujoco>")
@@ -168,15 +182,22 @@ def build_model(hand_xml, prefix, obj):
 class PreshapeScene:
     """The model of one object with the hand, and the state chosen by the user"""
 
-    def __init__(self, hand_xml, hand, obj, preshapes):
+    def __init__(self, hand_xml, hand, obj, preshapes, mass=None):
         self.prefix = "rh_" if hand == "right" else "lh_"
         self.obj = obj
         self.preshapes = preshapes
-        self.model = build_model(hand_xml, self.prefix, obj)
+        self.model = build_model(hand_xml, self.prefix, obj, mass)
+        self.dynamic = mass is not None
+        if self.dynamic:
+            # The hand does not fall under its own weight
+            hand = [b for b in range(self.model.nbody)
+                    if self.model.body(b).name not in ("world", "object", "hand_target")]
+            self.model.body_gravcomp[hand] = 1
+            self.hand_free = self.model.joint("hand_free").qposadr[0]
         self.data = mujoco.MjData(self.model)
         self.object_geom = self.model.geom("object").id
         self.palm = self.model.body(self.prefix + "palm").id
-        self.mocap = self.model.body("hand_base").mocapid[0]
+        self.mocap = self.model.body("hand_target" if mass is not None else "hand_base").mocapid[0]
         self.distal = {f: self.model.body(self.prefix + f.lower() + "distal").id for f in FINGERS}
         # The thumb side of the palm (+x for the right hand, -x for the left one)
         self.thumb_x = np.sign(self.model.body(self.prefix + "thbase").pos[0])
@@ -192,6 +213,10 @@ class PreshapeScene:
         self.reversed = False            # approach from the other end of the box
         self.offset = 0.0
         self.closing_since = None        # simulation time when closing started
+        # Error of the hand placement: translation (m, in the box frame) and rotation
+        # vector (rad, in the world frame) around the grasp point
+        self.position_error = np.zeros(3)
+        self.rotation_error = np.zeros(3)
 
     # ------------------------------------------------------------------ state
 
@@ -230,7 +255,7 @@ class PreshapeScene:
 
     def joint_qpos(self, config):
         """qpos of a joint configuration (joint names without the rh_/lh_ prefix)"""
-        qpos = np.zeros(self.model.nq)
+        qpos = self.model.qpos0.copy()
         for name, value in config.items():
             joint = self.model.joint(self.prefix + name)
             low, high = self.model.jnt_range[joint.id]
@@ -268,7 +293,14 @@ class PreshapeScene:
         x = x - np.dot(x, y) * y
         x /= np.linalg.norm(x)
         rot = np.column_stack([x, y, np.cross(x, y)])
-        target = grasp["center"] + approach * self.offset
+        target = grasp["center"] + approach * self.offset + box_rotation(grasp) @ self.position_error
+        if np.any(self.rotation_error):
+            error = np.zeros(9)
+            quat = np.zeros(4)
+            mujoco.mju_axisAngle2Quat(quat, self.rotation_error / np.linalg.norm(self.rotation_error),
+                                      np.linalg.norm(self.rotation_error))
+            mujoco.mju_quat2Mat(error, quat)
+            rot = error.reshape(3, 3) @ rot
         palm_pos = target - rot @ self.grasp_point
         base_rot = rot @ self.palm_rot.T
         self.data.mocap_pos[self.mocap] = palm_pos - base_rot @ self.palm_pos
@@ -282,6 +314,10 @@ class PreshapeScene:
         self.grasp_point = self.preshape_grasp_point(config)
         self.place_hand()
         self.data.qpos[:] = self.joint_qpos(config["open"])
+        if self.dynamic:
+            # The free hand starts on its mocap target
+            self.data.qpos[self.hand_free:self.hand_free + 3] = self.data.mocap_pos[self.mocap]
+            self.data.qpos[self.hand_free + 3:self.hand_free + 7] = self.data.mocap_quat[self.mocap]
         self.open_ctrl = self.actuator_targets(self.data.qpos)
         self.closed_ctrl = self.actuator_targets(self.joint_qpos(config["closed"]))
         self.data.ctrl[:] = self.open_ctrl
