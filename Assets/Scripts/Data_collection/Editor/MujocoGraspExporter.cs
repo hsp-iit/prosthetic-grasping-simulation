@@ -8,8 +8,9 @@ using UnityEngine;
 
 /// <summary>
 /// Export the grasp objects (YCB and GSO prefabs) with their grasp parallelepipeds for
-/// the MuJoCo preshape viewer (python_scripts/MuJoCo/preshape_viewer.py). For each prefab
-/// with a textured child, python_scripts/MuJoCo/exported/&lt;name&gt;/ gets:
+/// the MuJoCo tools of the grasping_physics_simulation repository (preshape_viewer.py,
+/// grasp_check.py). For each prefab with a textured child, assets/objects/&lt;name&gt;/ of that
+/// repository gets:
 /// - mesh.obj: the mesh of textured in the frame of the prefab root, with normals and uv
 /// - texture.png: the base color texture, if it is a PNG
 /// - object.json: category, bounds and the grasp parallelepipeds (name, preshape,
@@ -23,12 +24,43 @@ public static class MujocoGraspExporter
 {
     static readonly string[] PREFAB_DIRS = { "Assets/Prefabs/YCB", "Assets/Prefabs/GSO" };
 
-    static string OutDir => Path.Combine(Path.GetDirectoryName(Application.dataPath),
-                                         "python_scripts", "MuJoCo", "exported");
+    const string OUT_DIR_PREF = "MujocoGraspExporter.outDir";
+    const string PHYSICS_REPO = "grasping_physics_simulation";
+
+    static string OutDir;
+
+    /// <summary>
+    /// assets/objects of the grasping_physics_simulation repository: the folder chosen
+    /// before, or the repository next to this Unity project, or asked to the user.
+    /// Returns null if none is chosen
+    /// </summary>
+    static string FindOutDir()
+    {
+        string saved = EditorPrefs.GetString(OUT_DIR_PREF, "");
+        if (!string.IsNullOrEmpty(saved) && Directory.Exists(saved))
+            return saved;
+        string projectParent = Path.GetDirectoryName(Path.GetDirectoryName(Application.dataPath));
+        string sibling = Path.Combine(projectParent, PHYSICS_REPO);
+        if (Directory.Exists(sibling))
+            return Path.Combine(sibling, "assets", "objects");
+        string repo = EditorUtility.OpenFolderPanel("Select the " + PHYSICS_REPO + " repository", projectParent, "");
+        if (string.IsNullOrEmpty(repo))
+            return null;
+        string chosen = Path.Combine(repo, "assets", "objects");
+        EditorPrefs.SetString(OUT_DIR_PREF, chosen);
+        return chosen;
+    }
 
     [MenuItem("Tools/Grasp Objects/Export Objects for MuJoCo")]
     public static void ExportAll()
     {
+        OutDir = FindOutDir();
+        if (OutDir == null)
+        {
+            Debug.LogWarning("Export Objects for MuJoCo: no " + PHYSICS_REPO + " folder chosen, nothing exported");
+            return;
+        }
+        Directory.CreateDirectory(OutDir);
         string[] paths = AssetDatabase.FindAssets("t:Prefab", PREFAB_DIRS)
                          .Select(AssetDatabase.GUIDToAssetPath).OrderBy(p => p).ToArray();
         int exported = 0;
@@ -74,6 +106,10 @@ public static class MujocoGraspExporter
     /// </summary>
     public static bool Export(string prefabPath)
     {
+        if (OutDir == null)
+            OutDir = FindOutDir();
+        if (OutDir == null)
+            return false;
         GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
         try
         {
