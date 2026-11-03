@@ -298,14 +298,66 @@ several can. Physics and geometry together do clearly better, but not well enoug
 without checking. Use the predictions as suggestions to review. With 66 boxes the trees are small and can
 change when objects are added: rerun the check after adding objects.
 
+### Lift and perturbation test
+
+The check above only looks at contacts. `--lift` also tests whether the labeled preshape **holds** the
+object, and how much the hand placement may be off:
+
+```
+~/.venvs/mujoco/bin/python python_scripts/MuJoCo/grasp_check.py --lift
+```
+
+For every box, with its labeled preshape, starting from the best placement found by the check:
+
+1. the hand is placed: once exactly (nominal), and `--lift-trials` times (default 10) with a random error of
+   up to `--position-error` mm along each box axis (default 10) and `--rotation-error` degrees around a random
+   axis (default 15), i.e. how precisely a user positions the hand;
+2. if the open hand already goes more than 5 mm into the object, the trial fails (a real hand would push the
+   object away);
+3. the open hand moves forward along the approach until it touches the object (at most 4 cm), as a user
+   pushes the hand onto the object;
+4. the hand closes, without gravity: the object is free and can shift in the hand as the fingers close;
+5. gravity is turned on (object of `--mass` kg, default 0.2), the hand lifts it by 10 cm and shakes it
+   (+-2 cm, 2 Hz, 1 s);
+6. the grasp **holds** if the object moved less than 2 cm in the hand and still touches it; otherwise it
+   `slipped` or was `dropped`.
+
+The hand is a free body pulled by a stiff constraint towards the pose set by the script and
+gravity-compensated: moving it directly (as a mocap body) gives it no velocity, and then friction cannot
+carry the object.
+
+The report gets a **Lift test** section: how many boxes hold in the nominal placement, the mean rate of
+the perturbed placements holding (per preshape and per box, least robust first) and the failure reasons.
+`lift.csv` has every trial (errors applied, advance, slip, result).
+
+Results on 2026-11-03 (66 boxes, 0.2 kg, 10 perturbed placements of up to +-10 mm and +-15 degrees):
+
+| Preshape | Boxes | Nominal placement holds | Perturbed placements holding (mean) |
+|---|---|---|---|
+| `power_no3` | 33 | 27 | 71% |
+| `lateral_no3` | 10 | 0 | 11% |
+| `pinch_3` | 14 | 0 | 0% |
+| `pinch_no3` | 9 | 0 | 0% |
+
+How to read them:
+
+- **Power grasps are meaningful**: most hold, and the perturbed rate says how precisely the hand must be
+  placed. Low rates point to boxes to look at, e.g. the `large_diameter` box of
+  `Room_Essentials_Mug_White_Yellow` (0%) is in fact on the handle (its handle and body boxes are swapped),
+  and the sides of `001_chips_can` are too wide for the open Shadow Hand.
+- **Pinch and lateral results are not reliable yet**: they fail almost always, also when squeezing harder,
+  with stiffer actuators or with soft-finger friction. The likely cause is the closed pinch poses of
+  `shadow_preshapes.json`, which bring the ends of the fingertips together instead of their pads, so a thin
+  object is pushed out sideways. Do not read their 0% as wrong labels.
+
 ## 9. Limitations
 
 - **Convex hulls**: MuJoCo collides with the convex hull of the object mesh, so hollow parts (the inside of a
   mug, of a shoe, the hole of a handle) count as solid. The visual mesh is still the real one.
 - **Not the Hannes hand**: the Shadow Hand is larger and has more degrees of freedom; the preshapes only
   approximate the prosthesis ones.
-- **No table, no gravity, static object**: the viewer checks geometry and contacts, not whether the object
-  would be lifted.
+- **No table, no gravity, static object** in the viewer and in the contact check; only `--lift` lets the
+  object move, and its pinch results are not reliable yet (see above).
 - **One object per window**: `obj <name>` reopens the window with the new object.
 
 ## 10. Troubleshooting
