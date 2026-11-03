@@ -188,6 +188,8 @@ The physics checks of the grasp boxes and preshapes are in the separate reposito
 
 This project only exports the objects for it: `Tools -> Grasp Objects -> Export Objects for MuJoCo` writes every YCB and GSO prefab (the mesh of `textured`, its texture and the grasp parallelepipeds, converted to the MuJoCo frame) to `assets/objects/` of `grasping_physics_simulation`, looked for next to this project (otherwise a folder is asked and remembered). Export again after changing the grasp boxes.
 
+Grasp boxes can also be made there: a hand pose placed and checked in the viewer is saved with its `save` command (e.g. `save tripod[nops]`) to `assets/objects/<name>/mujoco_boxes.json`, and `Tools -> Grasp Objects -> Import Grasp Boxes from MuJoCo` adds the saved boxes to the prefabs as the other grasp parallelepipeds (BoxCollider, transparent material, inactive, renderer disabled), saves the prefabs, exports the objects again and renames the files (`mujoco_boxes.imported-<time>.json`) so that they are not imported twice. Boxes already in a prefab (same name and position) and names unknown to `GraspCatalog.graspType2preshape` are skipped with a warning. For a GSO object with automatic grasps, rebuilding the prefab drops the imported boxes: switch it to hand-placed grasps first (see [Placing the grasp boxes by hand](#placing-the-grasp-boxes-by-hand)); the import warns about it.
+
 ## Synthetic dataset generation with a Linux build
 A standalone build uses less GPU memory than the Editor and is the most reliable way to generate the full dataset.
 - Set the scenario values (`Iteration Count`, `Frames Per Iteration`, `Num Iterations Per Grasp`) in the `Data_collection` scene as described above and save the scene.
