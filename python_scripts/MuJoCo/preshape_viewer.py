@@ -37,6 +37,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+import os
 
 import mujoco
 import mujoco.viewer
@@ -687,3 +688,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # The thread reading the terminal is blocked in input(): a normal interpreter
+    # shutdown with it aborts (Python 3.12), hence exit directly
+    sys.stdout.flush()
+    os._exit(0)
