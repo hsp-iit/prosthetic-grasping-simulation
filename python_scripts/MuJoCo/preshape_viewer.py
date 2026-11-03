@@ -27,17 +27,22 @@ Viewer keys (the viewer window must have the focus):
   Enter                 close the hand on the object / back to the preshape
   Home                  turn the hand by 180 degrees around the approach direction
   End                   approach from the other end of the parallelepiped
+  Keypad 4 / 6          move (or rotate) the hand along (around) its x axis (thumb side)
+  Keypad 2 / 8          ... its z axis (fingers)
+  Keypad 3 / 9          ... its y axis (back of the hand; the palm faces -y)
+  Keypad 5              switch the keypad between moving and rotating
+  Keypad 0              back to the placement on the box
 Terminal commands: type `help` in the terminal where the viewer was started.
 """
 
 import argparse
 import json
+import os
 import queue
 import sys
 import threading
 import time
 from pathlib import Path
-import os
 
 import mujoco
 import mujoco.viewer
@@ -65,6 +70,9 @@ OTHER_BOX_COLOR = np.array([0.9, 0.6, 0.1])
 # GLFW key codes
 KEY_ENTER, KEY_RIGHT, KEY_LEFT, KEY_DOWN, KEY_UP = 257, 262, 263, 264, 265
 KEY_PAGE_UP, KEY_PAGE_DOWN, KEY_HOME, KEY_END = 266, 267, 268, 269
+KEY_KP = {i: 320 + i for i in range(10)}      # keypad 0-9
+MOVE_STEP_MM = 5.0
+ROTATE_STEP_DEG = 5.0
 
 HELP = """Commands (Enter to send):
   n / p             next / previous grasp parallelepiped
@@ -75,6 +83,13 @@ HELP = """Commands (Enter to send):
   a                 approach from the other end of the parallelepiped
   in / out          move the hand 5 mm towards / away from the object
   o <offset mm>     set the offset along the approach direction (+ = towards the object)
+  mx / my / mz <mm> move the hand along its own x (thumb side), y (back of the hand, the
+                    palm faces -y) or z (fingers) axis, e.g. mz -10
+  rx / ry / rz <deg> rotate the hand around its own x, y or z axis, around the grasp point
+  home              back to the placement on the box (undo mx..rz)
+  pose              print the manual moves and rotations
+  lift              physics test of the current pose: close on the free object (0.2 kg),
+                    lift and shake (as grasp_check.py --lift)
   obj <name|index>  open another object (the viewer window is reopened)
   list              list the objects
   r                 reload shadow_preshapes.json
@@ -185,6 +200,7 @@ class PreshapeScene:
 
     def __init__(self, hand_xml, hand, obj, preshapes, mass=None):
         self.prefix = "rh_" if hand == "right" else "lh_"
+        self.hand_xml, self.hand = hand_xml, hand
         self.obj = obj
         self.preshapes = preshapes
         self.model = build_model(hand_xml, self.prefix, obj, mass)
@@ -218,6 +234,10 @@ class PreshapeScene:
         # vector (rad, in the world frame) around the grasp point
         self.position_error = np.zeros(3)
         self.rotation_error = np.zeros(3)
+        # Moves (m) and rotation set by hand, in the frame of the palm, on top of the
+        # placement on the box
+        self.manual_move = np.zeros(3)
+        self.manual_rot = np.eye(3)
 
     # ------------------------------------------------------------------ state
 
@@ -250,7 +270,34 @@ class PreshapeScene:
     def set_grasp(self, index):
         if self.obj["grasps"]:
             self.grasp_index = index % len(self.obj["grasps"])
-            self.reset()
+            self.reset_manual()
+
+    def move_hand(self, axis, mm):
+        """Move the hand along its own axis (0 x thumb side, 1 y back, 2 z fingers)"""
+        self.manual_move += self.manual_rot[:, axis] * mm / 1000
+        self.reset()
+
+    def rotate_hand(self, axis, degrees):
+        """Rotate the hand around its own axis, around the grasp point"""
+        quat, mat = np.zeros(4), np.zeros(9)
+        mujoco.mju_axisAngle2Quat(quat, np.eye(3)[axis], np.radians(degrees))
+        mujoco.mju_quat2Mat(mat, quat)
+        self.manual_rot = self.manual_rot @ mat.reshape(3, 3)
+        self.reset()
+
+    def reset_manual(self):
+        self.manual_move = np.zeros(3)
+        self.manual_rot = np.eye(3)
+        self.reset()
+
+    def manual_pose(self):
+        """The manual moves (mm, in the hand frame of the placement on the box) and the
+        manual rotation as an angle (degrees) around an axis of the hand"""
+        quat = np.zeros(4)
+        mujoco.mju_mat2Quat(quat, self.manual_rot.flatten())
+        angle = 2 * np.degrees(np.arccos(np.clip(quat[0], -1, 1)))
+        axis = quat[1:] / (np.linalg.norm(quat[1:]) or 1)
+        return 1000 * self.manual_move, angle, axis
 
     # ------------------------------------------------------------- kinematics
 
@@ -302,6 +349,8 @@ class PreshapeScene:
                                       np.linalg.norm(self.rotation_error))
             mujoco.mju_quat2Mat(error, quat)
             rot = error.reshape(3, 3) @ rot
+        target = target + rot @ self.manual_move
+        rot = rot @ self.manual_rot
         palm_pos = target - rot @ self.grasp_point
         base_rot = rot @ self.palm_rot.T
         self.data.mocap_pos[self.mocap] = palm_pos - base_rot @ self.palm_pos
@@ -355,6 +404,11 @@ class PreshapeScene:
         self.step(CLOSE_DURATION + 0.5)
 
     # ----------------------------------------------------------------- report
+
+    def pose_text(self):
+        move, angle, axis = self.manual_pose()
+        return (f"  moved by hand: x {move[0]:+.0f}, y {move[1]:+.0f}, z {move[2]:+.0f} mm; "
+                f"rotated {angle:.0f} deg around ({axis[0]:+.2f}, {axis[1]:+.2f}, {axis[2]:+.2f}) of the hand")
 
     def box_distance(self, point):
         """Distance of a point from the current grasp parallelepiped (0 inside)"""
@@ -417,6 +471,7 @@ class PreshapeScene:
             f"  hand: {self.preshape} {state}, offset {1000 * self.offset:+.0f} mm, "
             f"{'turned 180' if self.flipped else 'thumb opposite to box x'}"
             f"{', approach reversed' if self.reversed else ''}",
+            *([self.pose_text()] if np.any(self.manual_move) or not np.allclose(self.manual_rot, np.eye(3)) else []),
             f"  fingertip distance to the box (mm, 0 = inside): {distances}",
             "  contacts with the object (count, closest to the box in mm): "
             + (", ".join(f"{b} ({len(d)}, {1000 * min(d):.0f})" for b, d in sorted(contacts.items()))
@@ -504,11 +559,24 @@ def run_viewer(scene, commands):
     """Run the viewer until the window is closed or another object is asked for.
     Returns the name or index of the object to open next, or None to quit"""
     keys = {KEY_PAGE_UP: "n", KEY_PAGE_DOWN: "p", KEY_UP: "s+", KEY_DOWN: "s-",
-            KEY_ENTER: "c", KEY_HOME: "f", KEY_END: "a"}
+            KEY_ENTER: "c", KEY_HOME: "f", KEY_END: "a", KEY_KP[0]: "home"}
+    # Keypad: axis and direction, moving or rotating
+    keypad = {KEY_KP[4]: ("x", -1), KEY_KP[6]: ("x", 1), KEY_KP[2]: ("z", -1), KEY_KP[8]: ("z", 1),
+              KEY_KP[3]: ("y", -1), KEY_KP[9]: ("y", 1)}
+    mode = {"rotate": False}
 
     def on_key(keycode):
         if keycode in keys:
             commands.put(keys[keycode])
+        elif keycode == KEY_KP[5]:
+            mode["rotate"] = not mode["rotate"]
+            print(f"Keypad: {'rotating' if mode['rotate'] else 'moving'} the hand")
+        elif keycode in keypad:
+            axis, sign = keypad[keycode]
+            if mode["rotate"]:
+                commands.put(f"r{axis} {sign * ROTATE_STEP_DEG}")
+            else:
+                commands.put(f"m{axis} {sign * MOVE_STEP_MM}")
 
     scene.reset()
     print(scene.report())
@@ -561,6 +629,32 @@ def run_viewer(scene, commands):
     return None if quit_requested else next_object
 
 
+def lift_current(scene):
+    """Run the lift test of grasp_check.py on the current grasp, preshape and hand pose"""
+    import grasp_check as gc
+    if scene.grasp is None:
+        return
+    lift = getattr(scene, "lift_scene", None)
+    if lift is None:
+        print("Building the physics model of the object...")
+        lift = gc.pv.PreshapeScene(scene.hand_xml, scene.hand, scene.obj, scene.preshapes, mass=0.2)
+        lift.object_body = lift.model.body("object").id
+        lift.object_dof = lift.model.body_dofadr[lift.object_body]
+        scene.lift_scene = lift
+    lift.preshapes = scene.preshapes
+    for name in ("grasp_index", "preshape_override", "flipped", "reversed", "offset",
+                 "manual_move", "manual_rot"):
+        setattr(lift, name, getattr(scene, name))
+    lift.position_error, lift.rotation_error = np.zeros(3), np.zeros(3)
+    gravity = np.array([0, 0, 9.81 if "[usd]" in scene.grasp["name"] else -9.81])
+    holds, slip, penetration, advance, reason = gc.lift_trial(lift, gravity)
+    if holds:
+        print(f"Lift: HOLDS (moved {slip:.0f} mm in the hand; the hand advanced {advance:.0f} mm to touch)")
+    else:
+        detail = f", open hand {penetration:.0f} mm in the object" if reason.startswith("open") else ""
+        print(f"Lift: FAILS, {reason}{detail} (the hand advanced {advance:.0f} mm to touch)")
+
+
 def handle_command(scene, command):
     """Apply a command: True if the state changed, ("object", name) to open another
     object, "quit" to quit"""
@@ -597,6 +691,25 @@ def handle_command(scene, command):
     elif verb == "o" and args:
         scene.offset = float(args[0]) / 1000
         scene.reset()
+    elif verb in ("mx", "my", "mz", "rx", "ry", "rz") and args:
+        try:
+            value = float(args[0])
+        except ValueError:
+            print(f"{verb} needs a number, e.g. {verb} 5")
+            return False
+        axis = "xyz".index(verb[1])
+        if verb[0] == "m":
+            scene.move_hand(axis, value)
+        else:
+            scene.rotate_hand(axis, value)
+    elif verb == "home":
+        scene.reset_manual()
+    elif verb == "pose":
+        print(scene.pose_text())
+        return False
+    elif verb == "lift":
+        lift_current(scene)
+        return False
     elif verb == "r":
         scene.preshapes = load_preshapes()
         scene.reset()
@@ -684,11 +797,11 @@ def main():
             break
         name = resolve_object(requested) or name
         preshapes = scene.preshapes
-
-
-if __name__ == "__main__":
-    main()
     # The thread reading the terminal is blocked in input(): a normal interpreter
     # shutdown with it aborts (Python 3.12), hence exit directly
     sys.stdout.flush()
     os._exit(0)
+
+
+if __name__ == "__main__":
+    main()
