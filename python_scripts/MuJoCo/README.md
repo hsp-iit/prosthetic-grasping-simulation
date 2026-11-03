@@ -78,6 +78,11 @@ Press `T` to make the object transparent and see the boxes inside it (e.g. in th
 | `Enter` | close the hand on the object / back to the open preshape |
 | `Home` | turn the hand by 180 degrees around the approach direction |
 | `End` | approach from the other end of the box |
+| keypad `4` / `6` | move the hand along its x axis (- / +), or rotate around it (see keypad `5`) |
+| keypad `2` / `8` | ... along / around its z axis (the fingers) |
+| keypad `3` / `9` | ... along / around its y axis (the back of the hand) |
+| keypad `5` | switch the keypad between moving (5 mm steps) and rotating (5 degree steps) |
+| keypad `0` | back to the placement on the box |
 
 ### Commands (type in the terminal, then Enter)
 
@@ -94,6 +99,11 @@ The terminal commands always work, also when a key does not reach the viewer.
 | `a` | approach from the other end of the box |
 | `in` / `out` | move the hand 5 mm towards / away from the object |
 | `o 10` | set the offset along the approach to 10 mm (negative = away from the object) |
+| `mx 5` / `my 5` / `mz -10` | move the hand along its own x / y / z axis (mm) |
+| `rx 15` / `ry -10` / `rz 30` | rotate the hand around its own x / y / z axis (degrees) |
+| `home` | undo the moves and rotations, back to the placement on the box |
+| `pose` | print the moves and rotations done by hand |
+| `lift` | physics test of the current pose: does it hold the object? (see below) |
 | `r` | reload `shadow_preshapes.json` (after editing it) |
 | `i` | print the report again |
 | `obj 018_plum` | open another object (the window is reopened) |
@@ -110,6 +120,31 @@ The terminal commands always work, also when a key does not reach the viewer.
 4. `Enter` again to reopen, `Page Up` (or `n`) for the next box, and repeat.
 5. If the hand is too far or goes through the object, adjust with `in` / `out`; if the thumb is on the wrong
    side, `f`; if the hand comes from inside the object, `a`.
+
+### Moving and rotating the hand freely
+
+As a Unity object in `Local` mode, the hand moves along and rotates around **its own axes**:
+
+| Axis | Direction (right hand) |
+|---|---|
+| x | across the palm, towards the thumb side |
+| y | out of the back of the hand (the palm faces -y, i.e. `my -5` pushes the palm towards the object) |
+| z | along the fingers |
+
+- Rotations pivot around the **grasp point** of the preshape (the point placed on the box center), not
+  around the wrist, so the grasp point stays on the box while the hand turns.
+- Moves and rotations add up in the current hand frame: after `rz 90`, `mx` moves along the new x axis.
+- They are kept when changing preshape, closing the hand or using `in` / `out` / `f` / `a`, and undone by
+  `home`, keypad `0`, or going to another box.
+- The report shows them (`moved by hand: x +0, y +5, z -8 mm; rotated 20 deg around (+1, 0, 0) of the hand`),
+  relative to the placement on the box.
+
+To check a grasp yourself: put the hand where you think it should be (keypad or `mx`..`rz`), choose the
+preshape (`Up` / `Down`), close (`Enter`) and look at the contacts; then `lift` runs the physics test of
+`grasp_check.py --lift` on that exact pose (0.2 kg object, free; the hand advances until it touches, closes,
+lifts by 10 cm and shakes) and prints `HOLDS` or `FAILS` with the reason. It takes a few seconds and does not
+move the hand in the window. As for the batch test, trust it for power grasps; the pinch results are not
+reliable yet (section 8).
 
 ## 4. Reading the report
 
