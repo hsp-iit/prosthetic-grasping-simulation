@@ -113,3 +113,6 @@ python_scripts/*
 !Assets/Scenes/Data_collection*
 !python_scripts/Data_collection*
 !python_scripts/GSO
+!python_scripts/MuJoCo
+# Objects exported for the MuJoCo preshape viewer (Tools -> Grasp Objects -> Export Objects for MuJoCo)
+python_scripts/MuJoCo/exported/
