@@ -24,8 +24,21 @@ object is predicted by a model fitted on the other objects only):
 - geometry + physics: the same tree, also given the score of each preshape
 and the baseline of always predicting the most frequent preshape.
 
+Lift test (--lift): with the labeled preshape, in the best placement found above, and
+in --lift-trials placements with a random error (up to --position-error mm along each
+box axis and --rotation-error degrees around a random axis), the open hand moves forward
+along the approach until it touches the object (at most 4 cm, as a user pushes the hand
+onto the object; not into it, which would kick it away) and closes on it without
+gravity (the object, free and damped as if resting on a table, can shift in the hand as
+the fingers close), then gravity is turned on (object of --mass kg) and the
+hand lifts the object by 10 cm and shakes it. The grasp holds when the object moved less than
+2 cm in the hand and still touches it. A placement where the open hand already goes
+into the object fails (a real hand would push the object away). Outputs lift.csv, the
+lift_* columns of grasps.csv and a section of report.md.
+
 Usage:
   python grasp_check.py                     # all exported objects
+  python grasp_check.py --lift              # also the lift test
   python grasp_check.py 025_mug plum        # some objects (names or parts of them)
   python grasp_check.py --workers 4 --out /tmp/check
 """
@@ -59,6 +72,21 @@ OFFSETS_MM = [-10, 0, 10]
 # Thresholds
 MAX_OPEN_PENETRATION_MM = 5.0     # the open preshape must not go deeper in the object
 MAX_CONTACT_TO_BOX_MM = 30.0      # the closest contact must be this close to the box
+
+# Lift test
+LIFT_HEIGHT = 0.10            # m
+LIFT_DURATION = 1.0           # s
+SETTLE_DURATION = 0.3         # s after releasing the object, before lifting
+SHAKE_AMPLITUDE = 0.02        # m, vertical
+SHAKE_FREQUENCY = 2.0         # Hz
+SHAKE_DURATION = 1.0          # s
+MAX_ADVANCE = 0.040           # m: the hand moves forward until the open hand touches
+ADVANCE_STEP = 0.002          # m
+TOUCH_PENETRATION_MM = 1.0    # deeper than this counts as touching
+# Damping of the free object while the hand closes (N s/m, N m s/rad): stands for the
+# table it would rest on, so that a first light contact does not send it away
+CLOSING_DAMPING = (2.0, 0.02)
+MAX_SLIP_MM = 20.0            # largest move of the object in the hand for a hold
 
 # What each preshape needs once closed: the thumb, how many of the listed fingers, and
 # whether the palm (palm, proximal phalanges, little finger metacarpal) must touch
@@ -178,6 +206,122 @@ def check_object(args):
     return trials
 
 
+def lift_trial(scene, gravity):
+    """Move the open hand forward until it touches the object (as a user would), close
+    it on the free object without gravity, then turn gravity on, lift and shake.
+    Returns (holds, slip in mm, open penetration in mm, advance in mm, reason)"""
+    model, data = scene.model, scene.data
+    model.opt.gravity[:] = 0
+    start_offset = scene.offset
+    scene.reset()
+    open_penetration = deepest_penetration_mm(scene)
+    if open_penetration > MAX_OPEN_PENETRATION_MM:
+        return False, float("nan"), open_penetration, 0.0, "open hand in the object"
+    while open_penetration <= TOUCH_PENETRATION_MM and scene.offset - start_offset < MAX_ADVANCE:
+        scene.offset += ADVANCE_STEP
+        scene.reset()
+        open_penetration = deepest_penetration_mm(scene)
+    # Back to the last placement not touching the object: an initial overlap would kick it
+    while scene.offset > start_offset and deepest_penetration_mm(scene) > 0:
+        scene.offset -= ADVANCE_STEP
+        scene.reset()
+    advance = 1000 * (scene.offset - start_offset)
+    scene.offset = start_offset
+    dofs = slice(scene.object_dof, scene.object_dof + 6)
+    model.dof_damping[dofs] = [CLOSING_DAMPING[0]] * 3 + [CLOSING_DAMPING[1]] * 3
+    scene.closing_since = data.time
+    scene.step(pv.CLOSE_DURATION + 0.5)
+
+    def object_in_palm():
+        rot = data.xmat[scene.palm].reshape(3, 3)
+        return rot.T @ (data.xpos[scene.object_body] - data.xpos[scene.palm])
+
+    start = object_in_palm()
+    model.dof_damping[dofs] = 0
+    model.opt.gravity[:] = gravity
+    up = -gravity / np.linalg.norm(gravity)
+    base = data.mocap_pos[scene.mocap].copy()
+    scene.step(SETTLE_DURATION)
+    t0 = data.time
+    total = LIFT_DURATION + SHAKE_DURATION
+    while data.time - t0 < total:
+        t = data.time - t0
+        height = LIFT_HEIGHT * min(1.0, t / LIFT_DURATION)
+        if t > LIFT_DURATION:
+            height += SHAKE_AMPLITUDE * np.sin(2 * np.pi * SHAKE_FREQUENCY * (t - LIFT_DURATION))
+        data.mocap_pos[scene.mocap] = base + up * height
+        scene.step(0.005)
+    slip = 1000 * float(np.linalg.norm(object_in_palm() - start))
+    touching = any(scene.object_geom in (c.geom1, c.geom2) for c in data.contact[:data.ncon])
+    if not touching:
+        return False, slip, open_penetration, advance, "dropped"
+    if slip > MAX_SLIP_MM:
+        return False, slip, open_penetration, advance, "slipped"
+    return True, slip, open_penetration, advance, ""
+
+
+def lift_object(args):
+    """The lift trials of one object (run in a worker process)"""
+    name, menagerie, hand, placements, config = args
+    hand_xml = Path(menagerie) / "shadow_hand" / f"{hand}_hand.xml"
+    scene = pv.PreshapeScene(hand_xml, hand, pv.load_object(name), pv.load_preshapes(), mass=config["mass"])
+    scene.object_body = scene.model.body("object").id
+    scene.object_dof = scene.model.body_dofadr[scene.object_body]
+    rng = np.random.default_rng(config["seed"])
+    results = []
+    for index, grasp in enumerate(scene.obj["grasps"]):
+        if grasp["preshape"] not in scene.preshapes or (index + 1) not in placements:
+            continue
+        flip, offset = placements[index + 1]
+        scene.grasp_index = index
+        scene.preshape_override = grasp["preshape"]
+        scene.flipped = flip
+        scene.offset = offset / 1000
+        # Objects put upside down in Unity ([usd]) are grasped upside down
+        gravity = np.array([0, 0, 9.81 if "[usd]" in grasp["name"] else -9.81])
+        for trial in range(config["trials"] + 1):
+            if trial == 0:            # the nominal placement
+                position, rotation = np.zeros(3), np.zeros(3)
+            else:
+                position = rng.uniform(-1, 1, 3) * config["position_error"] / 1000
+                axis = rng.normal(size=3)
+                rotation = axis / np.linalg.norm(axis) * np.radians(rng.uniform(-1, 1) * config["rotation_error"])
+            scene.position_error, scene.rotation_error = position, rotation
+            holds, slip, penetration, advance, reason = lift_trial(scene, gravity)
+            results.append({
+                "object": name,
+                "grasp_index": index + 1,
+                "grasp": grasp["name"],
+                "preshape": grasp["preshape"],
+                "trial": trial,
+                "position_error_mm": " ".join(f"{1000 * v:.1f}" for v in position),
+                "rotation_error_deg": round(float(np.degrees(np.linalg.norm(rotation))), 1),
+                "open_penetration_mm": round(penetration, 1),
+                "advance_mm": round(advance),
+                "slip_mm": round(slip, 1) if slip == slip and reason != "dropped" else "",
+                "holds": holds,
+                "reason": reason,
+            })
+    return results
+
+
+def add_lift(rows, lift):
+    """Per grasp: whether the nominal placement holds, and the rate of the perturbed ones"""
+    by_grasp = defaultdict(list)
+    for result in lift:
+        by_grasp[(result["object"], result["grasp_index"])].append(result)
+    for r in rows:
+        results = by_grasp.get((r["object"], r["grasp_index"]))
+        if not results:
+            continue
+        nominal = [x for x in results if x["trial"] == 0][0]
+        perturbed = [x for x in results if x["trial"] > 0]
+        r["lift_nominal"] = nominal["holds"]
+        r["lift_rate"] = round(sum(x["holds"] for x in perturbed) / max(1, len(perturbed)), 2)
+        r["lift_failures"] = ", ".join(f"{reason} {count}" for reason, count in
+                                       Counter(x["reason"] for x in perturbed if not x["holds"]).most_common())
+
+
 def summarize(trials):
     """Per grasp: the best trial of each preshape, the prediction and the issues"""
     grasps = defaultdict(list)
@@ -202,6 +346,8 @@ def summarize(trials):
             "label_feasible": labeled["feasible"] if labeled else "",
             "label_best_variation": (f"flip={labeled['flip']} offset={labeled['offset_mm']}mm"
                                      if labeled else ""),
+            "label_flip": labeled["flip"] if labeled else "",
+            "label_offset_mm": labeled["offset_mm"] if labeled else "",
             "label_issues": labeled["unmet"] if labeled else "preshape not in shadow_preshapes.json",
             "predicted": predicted,
             "predicted_score": best[predicted]["score"],
@@ -270,7 +416,46 @@ def write_csv(path, rows):
         writer.writerows(rows)
 
 
-def write_report(path, rows, elapsed, accuracy, trees):
+def lift_report(rows, config):
+    tested = [r for r in rows if "lift_rate" in r]
+    if not tested:
+        return []
+    nominal = sum(r["lift_nominal"] for r in tested)
+    mean_rate = np.mean([r["lift_rate"] for r in tested])
+    lines = [
+        "## Lift test",
+        "",
+        f"Labeled preshape, best placement of the check, object of {config['mass']} kg released under "
+        f"gravity, lifted by {100 * LIFT_HEIGHT:.0f} cm and shaken (+-{100 * SHAKE_AMPLITUDE:.0f} cm, "
+        f"{SHAKE_FREQUENCY:.0f} Hz). Perturbed: {config['trials']} placements per box with up to "
+        f"+-{config['position_error']:.0f} mm along each box axis and +-{config['rotation_error']:.0f} degrees. "
+        f"Holds = moved less than {MAX_SLIP_MM:.0f} mm in the hand and still touching it.",
+        "",
+        f"- Nominal placement holds: **{nominal}/{len(tested)}** boxes",
+        f"- Perturbed placements holding, mean over the boxes: **{100 * mean_rate:.0f}%**",
+        "",
+        "| Preshape | Boxes | Nominal holds | Perturbed holding (mean) |",
+        "|---|---|---|---|",
+    ]
+    for preshape in sorted({r["label"] for r in tested}):
+        group = [r for r in tested if r["label"] == preshape]
+        lines.append(f"| {preshape} | {len(group)} | {sum(r['lift_nominal'] for r in group)} | "
+                     f"{100 * np.mean([r['lift_rate'] for r in group]):.0f}% |")
+    lines += [
+        "",
+        "Per box, least robust first:",
+        "",
+        "| Object | Grasp | Label | Nominal | Perturbed holding | Failures (perturbed) |",
+        "|---|---|---|---|---|---|",
+    ]
+    for r in sorted(tested, key=lambda r: (r["lift_rate"], r["lift_nominal"])):
+        lines.append(f"| {r['object']} | {r['grasp_index']}. `{r['grasp']}` | {r['label']} | "
+                     f"{'holds' if r['lift_nominal'] else 'fails'} | {100 * r['lift_rate']:.0f}% | "
+                     f"{r['lift_failures'] or '-'} |")
+    return lines + [""]
+
+
+def write_report(path, rows, elapsed, accuracy, trees, lift_config=None):
     preshapes = sorted({r["label"] for r in rows} | {r["predicted"] for r in rows})
     agree = sum(r["agree"] for r in rows)
     feasible = sum(r["label_feasible"] is True for r in rows)
@@ -301,6 +486,7 @@ def write_report(path, rows, elapsed, accuracy, trees):
 
     lines += [
         "",
+        *(lift_report(rows, lift_config) if lift_config else []),
         "## Calibration: automatic preshape choice vs labeled preshape",
         "",
         "Accuracy when each object (or each whole category) is predicted by a model fitted on the "
@@ -356,6 +542,12 @@ def main():
     parser.add_argument("--workers", type=int, default=max(1, min(4, (os.cpu_count() or 2) // 2)),
                         help="parallel processes (each one loads an object; default %(default)s)")
     parser.add_argument("--out", type=Path, default=pv.EXPORTED / "_check")
+    parser.add_argument("--lift", action="store_true", help="also run the lift and perturbation test")
+    parser.add_argument("--lift-trials", type=int, default=10, help="perturbed placements per box")
+    parser.add_argument("--position-error", type=float, default=10.0, help="mm along each box axis")
+    parser.add_argument("--rotation-error", type=float, default=15.0, help="degrees")
+    parser.add_argument("--mass", type=float, default=0.2, help="object mass (kg) in the lift test")
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
     names = [pv.resolve_object(o) for o in args.objects] if args.objects else pv.list_objects()
@@ -379,13 +571,37 @@ def main():
 
     rows = summarize(trials)
     accuracy, trees = calibrate(rows)
+    lift_config = None
+    if args.lift:
+        lift_config = {"trials": args.lift_trials, "position_error": args.position_error,
+                       "rotation_error": args.rotation_error, "mass": args.mass, "seed": args.seed}
+        placements = defaultdict(dict)
+        for r in rows:
+            if r["label_flip"] != "":
+                placements[r["object"]][r["grasp_index"]] = (r["label_flip"], r["label_offset_mm"])
+        jobs = [(name, str(args.menagerie), args.hand, placements[name], lift_config)
+                for name in names if placements.get(name)]
+        lift = []
+        lift_start = time.time()
+        with multiprocessing.Pool(args.workers) as pool:
+            for i, result in enumerate(pool.imap_unordered(lift_object, jobs), 1):
+                lift += result
+                print(f"[lift {i}/{len(jobs)}] {result[0]['object'] if result else ''}")
+        print(f"Lift test: {len(lift)} trials in {(time.time() - lift_start) / 60:.1f} min")
+        add_lift(rows, lift)
+        write_csv(args.out / "lift.csv", lift)
+        elapsed = time.time() - start
     write_csv(args.out / "trials.csv", trials)
     write_csv(args.out / "grasps.csv", rows)
-    write_report(args.out / "report.md", rows, elapsed, accuracy, trees)
+    write_report(args.out / "report.md", rows, elapsed, accuracy, trees, lift_config)
     feasible = sum(r["label_feasible"] is True for r in rows)
     print(f"\n{len(rows)} grasps in {elapsed / 60:.1f} min: {feasible} feasible with their labeled preshape")
     print("Accuracy (leave one object out / one category out): "
           + ", ".join(f"{k} {100 * a:.0f}/{100 * b:.0f}%" for k, (a, b) in accuracy.items()))
+    if args.lift:
+        tested = [r for r in rows if "lift_rate" in r]
+        print(f"Lift: nominal placement holds for {sum(r['lift_nominal'] for r in tested)}/{len(tested)} boxes, "
+              f"perturbed placements hold {100 * np.mean([r['lift_rate'] for r in tested]):.0f}% on average")
     print(f"Report: {args.out / 'report.md'}")
 
 
