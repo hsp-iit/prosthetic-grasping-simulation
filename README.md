@@ -186,6 +186,8 @@ The GSO prefabs are upright and textured with their original texture (labeled as
 ## Checking the preshapes against the grasp boxes in MuJoCo
 The [Shadow Hand](https://github.com/google-deepmind/mujoco_menagerie/tree/main/shadow_hand) of MuJoCo Menagerie (24 joints, 20 position actuators) can be placed on each grasp parallelepiped of an object, in the preshape of that grasp, and closed on the object, to see whether the boxes and the preshapes make sense together.
 
+Full guide (keys, commands, reading the report, editing the preshapes, troubleshooting): [python_scripts/MuJoCo/README.md](python_scripts/MuJoCo/README.md).
+
 1. Clone the Menagerie next to this repository (only `shadow_hand/` is used; another location is given with `--menagerie`), and install MuJoCo:
    ```
    git clone https://github.com/google-deepmind/mujoco_menagerie.git ../mujoco_menagerie
