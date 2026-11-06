@@ -111,4 +111,5 @@ python_scripts/*
 # ...but not the files under the folder starting with Data_collection
 !Assets/Scripts/Data_collection*
 !Assets/Scenes/Data_collection*
-!python_scripts/Data_collection*.idea/
+!python_scripts/Data_collection*
+.idea/
