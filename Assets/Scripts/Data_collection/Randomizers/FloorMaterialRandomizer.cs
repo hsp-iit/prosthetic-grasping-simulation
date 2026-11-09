@@ -27,12 +27,13 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         // We need to store the original material, such that 
         // at the end of each iteration we can restore it (if changed)
         private Material originalObjMaterial = null;
-        private string sampledObjMaterialName = null;
+        // Index, in the renderer's material slots, of the material replaced in this iteration
+        private int replacedSlot = -1;
 
         // Since the gameobject we are using has several materials (instead
-        // of one), and each one of these represent a different part, we have 
+        // of one), and each one of these represent a different part, we have
         // to know which is the right one (i.e., the one representing the floor)
-        private string FLOOR_MATERIAL_NAME = "MarbleFlooring_Mat (Instance)";
+        private string FLOOR_MATERIAL_NAME = "MarbleFlooring_Mat";
 
         protected override void OnAwake()
         {
@@ -43,6 +44,8 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         /// Randomizes the material of tagged floor at the start of each scenario iteration
         /// The randomization is performed only if the sampled float value
         /// falls within the user-defined sampling range.
+        /// Works on sharedMaterials: reading Renderer.materials would create a new copy of
+        /// every slot holding a material asset at each iteration, and those copies are never destroyed
         /// </summary>
         protected override void OnIterationStart()
         {
@@ -52,33 +55,27 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
                 float sampledFloat = samplerApplyMaterial.Sample();
                 if (sampledFloat <= samplingRangeMaterial)
                 {
-                    int materialsLength = tag.GetComponent<Renderer>().materials.Length;
-                    Material[] newMaterials = new Material[materialsLength];
-                    for (int i = 0; i < materialsLength; i++)
+                    Renderer renderer = tag.GetComponent<Renderer>();
+                    Material[] newMaterials = renderer.sharedMaterials;
+                    for (int i = 0; i < newMaterials.Length; i++)
                     {
-                        Material mat = tag.GetComponent<Renderer>().materials[i];
-                        if (mat.name == FLOOR_MATERIAL_NAME)
+                        Material mat = newMaterials[i];
+                        if (mat != null && StripInstanceSuffix(mat.name) == FLOOR_MATERIAL_NAME)
                         {
                             originalObjMaterial = mat;
-                            
-                            //tag.GetComponent<Renderer>().materials[i] = materials.Sample();
+                            replacedSlot = i;
                             newMaterials[i] = materials.Sample();
-                            sampledObjMaterialName = newMaterials[i].name + " (Instance)";
-                        }
-                        else
-                        {
-                            newMaterials[i] = mat;  
                         }
                     }
                     if (originalObjMaterial == null)
                     {
-                        Debug.LogError("Material " + FLOOR_MATERIAL_NAME + " not found in "+ 
+                        Debug.LogError("Material " + FLOOR_MATERIAL_NAME + " not found in " +
                                        tag.name + " GameObject. Stopping execution . . .");
                         // Stop execution
                         SimulationStopper.Stop();
                     }
 
-                    tag.GetComponent<Renderer>().materials = newMaterials;
+                    renderer.sharedMaterials = newMaterials;
                 }
             }
         }
@@ -90,27 +87,24 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
                 var tags = tagManager.Query<FloorMaterialRandomizerTag>();
                 foreach (var tag in tags)
                 {
-                    int materialsLength = tag.GetComponent<Renderer>().materials.Length;
-                    Material[] newMaterials = new Material[materialsLength];
-                    for (int i = 0; i < materialsLength; i++)
+                    Renderer renderer = tag.GetComponent<Renderer>();
+                    Material[] newMaterials = renderer.sharedMaterials;
+                    if (replacedSlot >= 0 && replacedSlot < newMaterials.Length)
                     {
-                        Material mat = tag.GetComponent<Renderer>().materials[i];
-                        if (mat.name == sampledObjMaterialName)
-                        {
-                            //tag.GetComponent<Renderer>().materials[i] = originalObjMaterial;
-                            newMaterials[i] = originalObjMaterial;
-
-                            originalObjMaterial = null;
-                            sampledObjMaterialName = null;
-                        }
-                        else
-                        {
-                            newMaterials[i] = mat;
-                        }
+                        newMaterials[replacedSlot] = originalObjMaterial;
+                        renderer.sharedMaterials = newMaterials;
                     }
-                    tag.GetComponent<Renderer>().materials = newMaterials;
                 }
+                originalObjMaterial = null;
+                replacedSlot = -1;
             }
+        }
+
+        /// The material may be an instance created by an earlier access to Renderer.materials
+        static string StripInstanceSuffix(string name)
+        {
+            const string suffix = " (Instance)";
+            return name.EndsWith(suffix) ? name.Substring(0, name.Length - suffix.Length) : name;
         }
 
     }
