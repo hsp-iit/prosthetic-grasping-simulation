@@ -66,6 +66,7 @@ public class GsoBrowser : EditorWindow
     {
         public string name;
         public string category;
+        public float yaw;
         public string farthest_to;
         public bool auto_grasps = true;
         public ManifestGrasp[] grasps;
@@ -107,6 +108,7 @@ public class GsoBrowser : EditorWindow
     // The add form of the selected object
     string category = "";
     bool autoGrasps = true;
+    float yaw;
     int farthestTo;
     List<GraspRow> graspRows = new List<GraspRow>();
     int copyFrom;
@@ -231,12 +233,16 @@ public class GsoBrowser : EditorWindow
         {
             category = obj.category;
             autoGrasps = obj.auto_grasps;
+            yaw = obj.yaw;
             farthestTo = Mathf.Max(0, Array.IndexOf(FARTHEST_TO, obj.farthest_to));
             SetGraspRows(obj.grasps);
         }
         else
         {
+            // Nothing carried over from the previously selected object
+            category = "";
             autoGrasps = true;
+            yaw = 0f;
             farthestTo = 0;
         }
     }
@@ -394,9 +400,44 @@ public class GsoBrowser : EditorWindow
         return "\"" + arg.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
     }
 
+    // The full path of the Python executable. A bare name (e.g. python3) is looked up in
+    // the PATH currently set in Windows, not in the one Unity inherited when it started,
+    // such that a Python added to PATH afterwards is found without restarting Unity.
+    // The WindowsApps folder is skipped: its python.exe and python3.exe are Microsoft
+    // Store stubs, which only print "Python was not found"
+    static string ResolvePython(string python)
+    {
+        if (Application.platform != RuntimePlatform.WindowsEditor || Path.IsPathRooted(python))
+            return python;
+        string path = Environment.GetEnvironmentVariable("Path", EnvironmentVariableTarget.Machine) + ";"
+                      + Environment.GetEnvironmentVariable("Path", EnvironmentVariableTarget.User) + ";"
+                      + Environment.GetEnvironmentVariable("Path");
+        string[] names = Path.HasExtension(python) ? new[] { python } : new[] { python + ".exe", python };
+        foreach (string dir in path.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            string expanded = Environment.ExpandEnvironmentVariables(dir.Trim().Trim('"'));
+            if (expanded.IndexOf("WindowsApps", StringComparison.OrdinalIgnoreCase) >= 0)
+                continue;
+            foreach (string name in names)
+            {
+                try
+                {
+                    string candidate = Path.Combine(expanded, name);
+                    if (File.Exists(candidate))
+                        return candidate;
+                }
+                catch (ArgumentException)
+                {
+                    // Invalid characters in a PATH entry
+                }
+            }
+        }
+        return python;
+    }
+
     bool RunTool(params string[] args)
     {
-        string python = EditorPrefs.GetString(PYTHON_PREF, "python3");
+        string python = ResolvePython(EditorPrefs.GetString(PYTHON_PREF, "python3"));
         ProcessStartInfo info = new ProcessStartInfo(python, Quote(ToolPath) + " " + string.Join(" ", args.Select(Quote)))
         {
             UseShellExecute = false,
@@ -420,6 +461,13 @@ public class GsoBrowser : EditorWindow
                 log += result + "\n";
                 if (process.ExitCode != 0)
                 {
+                    // 9009: the Microsoft Store stub ran instead of Python
+                    if (process.ExitCode == 9009)
+                    {
+                        result += "\n" + python + " is not a Python installation: set the full path of python.exe " +
+                                  "in the Python executable field below";
+                        log += result.Substring(result.LastIndexOf('\n') + 1) + "\n";
+                    }
                     Debug.LogError("[GSO Browser] " + result);
                     return false;
                 }
@@ -438,6 +486,9 @@ public class GsoBrowser : EditorWindow
     void AddToPrefabs()
     {
         List<string> args = new List<string> { "add", selectedName, "--category", category.Trim(), "--replace" };
+        // The add command replaces the whole manifest entry, hence the yaw is passed again
+        if (yaw != 0f)
+            args.AddRange(new[] { "--yaw", yaw.ToString(System.Globalization.CultureInfo.InvariantCulture) });
         if (farthestTo > 0)
             args.AddRange(new[] { "--farthest-to", FARTHEST_TO[farthestTo] });
         if (autoGrasps)
@@ -667,6 +718,8 @@ public class GsoBrowser : EditorWindow
         if (known >= 0)
             category = knownCategories[known];
         EditorGUILayout.EndHorizontal();
+        yaw = EditorGUILayout.FloatField(new GUIContent("Yaw (degrees)",
+            "Rotation around the vertical axis, applied before \"Farthest part to\""), yaw);
         farthestTo = EditorGUILayout.Popup(new GUIContent("Farthest part to",
             "Rotate the object such that its most protruding part (e.g. the handle of a mug) faces this side"),
             farthestTo, FARTHEST_TO);

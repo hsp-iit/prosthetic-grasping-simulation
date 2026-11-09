@@ -315,9 +315,17 @@ public static class GsoPrefabBuilder
     {
         foreach (Transform grasp in textured)
         {
+            // A child added by hand may have no renderer (e.g. an empty object)
             Renderer renderer = grasp.GetComponent<Renderer>();
-            Undo.RecordObjects(new UnityEngine.Object[] { grasp.gameObject, renderer }, "Show grasp boxes");
-            renderer.enabled = visible;
+            if (renderer != null)
+            {
+                Undo.RecordObjects(new UnityEngine.Object[] { grasp.gameObject, renderer }, "Show grasp boxes");
+                renderer.enabled = visible;
+            }
+            else
+            {
+                Undo.RecordObject(grasp.gameObject, "Show grasp boxes");
+            }
             grasp.gameObject.SetActive(visible);
         }
     }

@@ -75,7 +75,7 @@ public static class GraspCatalog
         {"paper_punch", "small_tool"},
         {"pen", "small_tool"},
         {"pen_thin", "small_tool"},
-        {"pencil", "smalll_tool"},
+        {"pencil", "small_tool"},
         {"pendrive", "small_tool"},
         {"scotch", "small_tool"},
         {"sharpner", "small_tool"},
