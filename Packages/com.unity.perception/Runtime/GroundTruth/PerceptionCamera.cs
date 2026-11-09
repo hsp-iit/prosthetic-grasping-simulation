@@ -606,6 +606,18 @@ namespace UnityEngine.Perception.GroundTruth
             savedHierarchies[Time.frameCount].subscribers += 1;
         }
 
+        static void ReleaseHierarchy(int frame)
+        {
+            if (!savedHierarchies.TryGetValue(frame, out var hierarchy))
+                return;
+
+            // subscribers is unsigned: never decrement past zero
+            if (hierarchy.subscribers > 0)
+                hierarchy.subscribers -= 1;
+            if (hierarchy.subscribers == 0)
+                savedHierarchies.Remove(frame);
+        }
+
         void OnBeginFrameRendering(ScriptableRenderContext ctx)
         {
             // Sensors and channels are allowed to continue rendering even when the editor is paused to enable
@@ -659,6 +671,14 @@ namespace UnityEngine.Perception.GroundTruth
                         "before subscribing to the RenderedObjectInfosCalculated event.");
                 var texture = GetChannel<InstanceIdChannel>().outputTexture;
                 RenderedObjectInfoComputer.CalculateRenderedObjectInfos(cmd, texture, RenderedObjectInfosCalculated);
+            }
+            else
+            {
+                // The hierarchy saved in OnBeginFrameRendering is only released by the
+                // RenderedObjectInfosCalculated readback. Without subscribers that readback
+                // never runs, so release this camera's subscription here, otherwise one
+                // hierarchy per captured frame stays in savedHierarchies for the whole session
+                ReleaseHierarchy(Time.frameCount);
             }
 
             // Execute the enqueued end-of-frame operations.
