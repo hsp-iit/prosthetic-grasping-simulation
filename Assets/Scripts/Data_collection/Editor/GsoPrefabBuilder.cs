@@ -46,6 +46,11 @@ public static class GsoPrefabBuilder
         public float height = 0.5f;
         public float[] offset;
         public float[] size;
+        // Top and bottom grasps: keep the surface reached by the approach line even if it is
+        // more than MAX_DEPTH_TOP_GRASP below the outermost part of the object (e.g. the
+        // handle of a hammer lying on its side, lower than its head), instead of moving the
+        // parallelepiped up to the outermost part as for hollow objects
+        public bool local_surface;
     }
 
     [Serializable]
@@ -411,7 +416,8 @@ public static class GsoPrefabBuilder
         }
         // Nothing there, or a hollow object seen from the top: use the outermost part
         // of the object instead
-        if (float.IsNegativeInfinity(surface) || (!sideGrasp && outermost - surface > MAX_DEPTH_TOP_GRASP))
+        if (float.IsNegativeInfinity(surface)
+            || (!sideGrasp && !grasp.local_surface && outermost - surface > MAX_DEPTH_TOP_GRASP))
         {
             surface = outermost;
         }

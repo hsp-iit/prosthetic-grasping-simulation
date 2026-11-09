@@ -17,7 +17,7 @@
       "grasps": [
         {"name": "large_diameter[susd]", "approach": "left"},
         {"name": "sphere_4fingers[nops]", "approach": "top"},
-        {"name": "prismatic_2fingers[susd]", "approach": "right"}
+        {"name": "adducted_thumb[susd]", "approach": "right"}
       ]
     },
     {
@@ -25,9 +25,9 @@
       "category": "mug",
       "farthest_to": "right",
       "grasps": [
-        {"name": "large_diameter[susd]", "approach": "left"},
+        {"name": "large_diameter[susd]", "approach": "right"},
         {"name": "sphere_4fingers[nops]", "approach": "top"},
-        {"name": "prismatic_2fingers[susd]", "approach": "right"}
+        {"name": "adducted_thumb[susd]", "approach": "left"}
       ]
     },
     {
@@ -37,7 +37,7 @@
       "grasps": [
         {"name": "large_diameter[susd]", "approach": "left"},
         {"name": "sphere_4fingers[nops]", "approach": "top"},
-        {"name": "prismatic_2fingers[susd]", "approach": "right"}
+        {"name": "adducted_thumb[susd]", "approach": "right"}
       ]
     },
     {
@@ -47,7 +47,7 @@
       "grasps": [
         {"name": "large_diameter[susd]", "approach": "left"},
         {"name": "sphere_4fingers[nops]", "approach": "top"},
-        {"name": "prismatic_2fingers[susd]", "approach": "right"}
+        {"name": "adducted_thumb[susd]", "approach": "right"}
       ]
     },
     {
@@ -109,21 +109,39 @@
       "name": "Craftsman_Grip_Screwdriver_Phillips_Cushion",
       "category": "small_tool",
       "grasps": [
-        {"name": "prismatic_4fingers", "approach": "top"}
+        {
+          "name": "small_diameter",
+          "approach": "top",
+          "offset": [
+            -0.085,
+            0,
+            0
+          ]
+        }
       ]
     },
     {
       "name": "Diamond_Visions_Scissors_Red",
       "category": "small_tool",
       "grasps": [
-        {"name": "prismatic_4fingers", "approach": "top"}
+        {"name": "prismatic_4fingers", "approach": "top"},
+        {"name": "adducted_thumb[border]", "approach": "left"}
       ]
     },
     {
       "name": "OXO_Cookie_Spatula",
       "category": "big_tool",
       "grasps": [
-        {"name": "prismatic_4fingers", "approach": "top"}
+        {
+          "name": "small_diameter",
+          "approach": "top",
+          "offset": [
+            0.06,
+            0,
+            0
+          ]
+        },
+        {"name": "adducted_thumb[border]", "approach": "front"}
       ]
     },
     {
@@ -139,6 +157,62 @@
       "category": "cattle",
       "auto_grasps": false,
       "grasps": []
+    },
+    {
+      "name": "Cole_Hardware_Hammer_Black",
+      "category": "big_tool",
+      "grasps": [
+        {
+          "name": "small_diameter",
+          "approach": "top",
+          "offset": [
+            0.04,
+            0,
+            0
+          ],
+          "local_surface": true
+        }
+      ]
+    },
+    {
+      "name": "Threshold_Porcelain_Pitcher_White",
+      "category": "dispenser",
+      "farthest_to": "right",
+      "grasps": [
+        {"name": "adducted_thumb", "approach": "right", "height": 0.65},
+        {"name": "sphere_4fingers[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "Threshold_Porcelain_Teapot_White",
+      "category": "teapot",
+      "farthest_to": "left",
+      "grasps": [
+        {"name": "adducted_thumb", "approach": "right"},
+        {"name": "tripod[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "Ecoforms_Cup_B4_SAN",
+      "category": "glass",
+      "grasps": [
+        {"name": "sphere_4fingers[nops]", "approach": "top"},
+        {"name": "large_diameter[susd]", "approach": "left"}
+      ]
+    },
+    {
+      "name": "Threshold_Ramekin_White_Porcelain",
+      "category": "glass",
+      "grasps": [
+        {"name": "sphere_4fingers[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "Threshold_Tray_Rectangle_Porcelain",
+      "category": "plate",
+      "grasps": [
+        {"name": "adducted_thumb[border]", "approach": "back"}
+      ]
     }
   ]
 }
