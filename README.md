@@ -201,6 +201,17 @@ D:/builds/A/DataCollection.exe -screen-fullscreen 0 -screen-width 640 -screen-he
 - The first build takes about 10 minutes (shader compilation), later ones about 1 minute.
 - The build deletes `Assets/Resources/Perception*.json` and `PerformanceTest*.json` and updates `ProjectSettings/BurstAotSettings_StandaloneWindows.json`; restore them with `git checkout -- Assets/Resources ProjectSettings/BurstAotSettings_StandaloneWindows.json`.
 
+## Reproducible renders (`tools/render.py`)
+`tools/render.py` wraps the build and the player run above, so that every dataset can be traced to the commit it was rendered from. A run is described by a committed spec in `render_specs/` (objects, preshape filter, sequences per pair, seed, resolution):
+```
+python tools/render.py render_specs/gso_pilot.json --dry-run   # checks and commands only
+python tools/render.py render_specs/gso_pilot.json
+```
+- It refuses to run on uncommitted changes or untracked files (`--allow-dirty` renders anyway and saves `dirty.patch`), with the project open in the Editor, with a Unity version other than `ProjectVersion.txt`, or without disk space for the estimated output (~45 MB per 90-frame sequence at 640x480).
+- The run id is `<name>_<YYYYMMDD-HHMM>_<sha7>`. The build goes to `D:/builds/<run_id>/` and is deleted after a successful run (`--keep-build` keeps it); the files the build rewrites are restored from git. Frames go to `D:/renders/<run_id>/` (`--out-root`, `--build-root`).
+- After the run it checks that every object-grasp pair of the build has `per_grasp` sequences with one label and the same frame count, and writes `generation.json` next to the output: spec, generator commit and remote, Unity and Perception versions, GPU and driver, build and player commands, timings, and the per-pair and per-preshape counts. `build.log` and `player.log` are kept in the same folder.
+- `--verify <output> --build-log <log> --per-grasp N` runs only the check on an existing output folder.
+
 ## Converting the generated videos into our own format
 - Once you are in the dataset folder mentioned above, you can find the labels (along with other metadata) as json files (`captures_***.json`) into the `Dataset023982da-0257-4541-9886-d22172b6c94c` folder (this is an example folder, you will have a different hash code following the `Dataset` name). <br>All the video frames (`rgb_***.png`) are located under the `RGB_another_hash_code_` folder.
 - We provide a script to convert the frames and labels into the structure used by our [experiments pipeline](https://github.com/hsp-iit/prosthetic-grasping-experiments). Each video will be organized according to the following path: `DATASET_BASE_FOLDER/CATEGORY_NAME/OBJECT_NAME/PRESHAPE_NAME/Wrist_d435/rgb*/*.png`. <br>For example: `ycb_synthetic_dataset/dispenser/006_mustard_bottle/power_no3/Wrist_d435/rgb*/*.png`
