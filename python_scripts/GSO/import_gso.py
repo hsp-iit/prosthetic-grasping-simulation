@@ -83,7 +83,7 @@ def save_manifest(manifest):
     # Keep the objects having only scalar values (i.e. the grasps) on one line
     text = re.sub(r'\{\n((?:[ ]+"[^"\n]+": (?:"[^"\n]*"|[^\n\[\]{}"]+),?\n)+)[ ]*\}',
                   lambda m: '{' + ' '.join(line.strip() for line in m.group(1).splitlines()) + '}', text)
-    with open(MANIFEST_PATH, 'w') as f:
+    with open(MANIFEST_PATH, 'w', newline='\n') as f:
         f.write(text + '\n')
 
 
@@ -292,7 +292,7 @@ def convert_model(zip_path, obj):
 
 
 def write_grasp_spec(obj):
-    with open(os.path.join(MODELS_DIR, obj['name'], 'grasp_spec.json'), 'w') as f:
+    with open(os.path.join(MODELS_DIR, obj['name'], 'grasp_spec.json'), 'w', newline='\n') as f:
         json.dump(obj, f, indent=2)
         f.write('\n')
 

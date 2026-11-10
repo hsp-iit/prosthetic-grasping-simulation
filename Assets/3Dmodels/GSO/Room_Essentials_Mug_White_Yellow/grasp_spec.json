@@ -5,15 +5,15 @@
   "grasps": [
     {
       "name": "large_diameter[susd]",
-      "approach": "left"
+      "approach": "right"
     },
     {
       "name": "sphere_4fingers[nops]",
       "approach": "top"
     },
     {
-      "name": "prismatic_2fingers[susd]",
-      "approach": "right"
+      "name": "adducted_thumb[susd]",
+      "approach": "left"
     }
   ]
 }

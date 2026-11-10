@@ -5,6 +5,10 @@
     {
       "name": "prismatic_4fingers",
       "approach": "top"
+    },
+    {
+      "name": "adducted_thumb[border]",
+      "approach": "left"
     }
   ]
 }

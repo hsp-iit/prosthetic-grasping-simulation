@@ -196,6 +196,31 @@ A standalone build uses less GPU memory than the Editor and is the most reliable
 - Open `File -> Build Profiles`, select `Linux`, make sure `Scenes/Data_collection` is the only scene in the list, click `Build` and choose an empty folder outside the repository (e.g. `~/builds/data_collection`), naming the executable `DataCollection`. The first build takes about 30 minutes (shader compilation).
 - Run it with `./run_data_collection.sh ~/builds/data_collection/DataCollection.x86_64 ~/synthetic_dataset`. A 1280x960 window shows the simulation (it must stay open: Linux builds do not render cameras in `-batchmode`), the dataset is written to `~/synthetic_dataset/<hash>/` and the window closes when all the videos are generated.
 
+## Synthetic dataset generation with a Windows build from the command line
+`BatchDataCollection.Build` (`Assets/Scripts/Data_collection/Editor/BatchDataCollection.cs`) configures the scenario from the command line and builds a Windows player, without changing the saved scene (the scene file is restored after the build). Close the Editor first, since the project cannot be open twice.
+```
+Unity.exe -batchmode -quit -projectPath PROJECT -executeMethod BatchDataCollection.Build ^
+    -preshapes lateral_no3,pinch_no3 -perGrasp 75 -seed 20261109 -buildPath D:/builds/A/DataCollection.exe -logFile build.log
+D:/builds/A/DataCollection.exe -screen-fullscreen 0 -screen-width 640 -screen-height 480 --output-path D:/datasets/A
+```
+- `-preshapes`: comma-separated preshape filter (omit for all grasps); `-perGrasp`: `Num Iterations Per Grasp`; `Iteration Count` is set to the number of selected object-grasp pairs times `-perGrasp`. Use a different `-seed` for every run that adds data to an existing one.
+- The player window size is the capture resolution: 640x480 matches the Game view used for the Editor runs.
+- The first build takes about 10 minutes (shader compilation), later ones about 1 minute.
+- The build deletes `Assets/Resources/Perception*.json` and `PerformanceTest*.json` and updates `ProjectSettings/BurstAotSettings_StandaloneWindows.json`; restore them with `git checkout -- Assets/Resources ProjectSettings/BurstAotSettings_StandaloneWindows.json`.
+
+## Reproducible renders (`tools/render.py`)
+`tools/render.py` wraps the build and the player run above, so that every dataset can be traced to the commit it was rendered from. A run is described by a committed spec in `render_specs/` (objects, preshape filter, sequences per pair, seed, resolution):
+```
+python tools/render.py render_specs/gso_pilot.json --dry-run   # checks and commands only
+python tools/render.py render_specs/gso_pilot.json
+```
+- It refuses to run on uncommitted changes or untracked files (`--allow-dirty` renders anyway and saves `dirty.patch`), with the project open in the Editor, with a Unity version other than `ProjectVersion.txt`, or without disk space for the estimated output (~45 MB per 90-frame sequence at 640x480).
+- The run id is `<name>_<YYYYMMDD-HHMM>_<sha7>`. The build goes to `D:/builds/<run_id>/` and is deleted after a successful run (`--keep-build` keeps it); the files the build rewrites are restored from git. Frames go to `D:/renders/<run_id>/` (`--out-root`, `--build-root`).
+- After the run it checks that every object-grasp pair of the build has `per_grasp` sequences with one label and the same frame count, and writes `generation.json` next to the output: spec, generator commit and remote, Unity and Perception versions, GPU and driver, build and player commands, timings, and the per-pair and per-preshape counts. `build.log` and `player.log` are kept in the same folder.
+- `--verify <output> --build-log <log> --per-grasp N` runs only the check on an existing output folder.
+- Frames are not archived: a re-render from the same commit and spec gives the same `sequence_parameters` for every sequence and the same pixels up to GPU noise (gso_pilot re-render: mean difference 0.8 grey levels at worst, 0.002% of pixels off by more than 10). What is archived (with DVC, in grasp_prediction) is `<run_id>/record/` (41 files, 1.5 GB for 1800 sequences), written after a successful run: `generation.json`, the logs, `perception.zip` (all Perception JSON: labels and parameters of every sequence), and the 90 frames of the first sequence of every object-grasp pair (`reference/*.zip`, listed in `reference.json`). `--make-record <run_dir>` writes it for an existing run.
+- `--compare <new_run_dir> <record_dir>` checks a re-render against a record: same labels and `sequence_parameters` for every sequence, and reference frames within `--tol-mean` (mean absolute difference, default 2 grey levels) and `--tol-frac` (fraction of pixels off by more than 10, default 0.5%). Needs numpy and Pillow.
+
 ## Converting the generated videos into our own format
 - Once you are in the dataset folder mentioned above, you can find the labels (along with other metadata) as json files (`captures_***.json`) into the `Dataset023982da-0257-4541-9886-d22172b6c94c` folder (this is an example folder, you will have a different hash code following the `Dataset` name). <br>All the video frames (`rgb_***.png`) are located under the `RGB_another_hash_code_` folder.
 - We provide a script to convert the frames and labels into the structure used by our [experiments pipeline](https://github.com/hsp-iit/prosthetic-grasping-experiments). Each video will be organized according to the following path: `DATASET_BASE_FOLDER/CATEGORY_NAME/OBJECT_NAME/PRESHAPE_NAME/Wrist_d435/rgb*/*.png`. <br>For example: `ycb_synthetic_dataset/dispenser/006_mustard_bottle/power_no3/Wrist_d435/rgb*/*.png`

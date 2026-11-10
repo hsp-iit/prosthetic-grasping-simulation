@@ -1,0 +1,10 @@
+{
+  "name": "Threshold_Ramekin_White_Porcelain",
+  "category": "glass",
+  "grasps": [
+    {
+      "name": "sphere_4fingers[nops]",
+      "approach": "top"
+    }
+  ]
+}
