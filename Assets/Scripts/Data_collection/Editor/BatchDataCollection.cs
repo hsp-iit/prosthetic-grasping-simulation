@@ -16,7 +16,13 @@ using UnityEngine.Perception.Randomization.Scenarios;
 ///       -preshapes lateral_no3,pinch_no3 -perGrasp 75 -seed 12345 -buildPath D:/builds/A/DataCollection.exe
 ///
 /// -preshapes: comma-separated preshape filter (empty or omitted = all grasps).
+/// -prefabs: optional comma-separated prefab names (looked up in Assets/Prefabs/YCB and Assets/Prefabs/GSO)
+///           replacing the scenario's prefabs list; omitted = keep the list saved in the scene.
 /// Iteration Count is set to (number of selected object-grasp pairs) * perGrasp.
+///
+/// Build only some GSO prefabs (the others, e.g. with hand-placed grasps, are not touched):
+///   Unity.exe -batchmode -quit -projectPath PROJECT -executeMethod BatchDataCollection.BuildGsoPrefabs
+///       -objects Cole_Hardware_Hammer_Black,Threshold_Porcelain_Pitcher_White
 /// </summary>
 public static class BatchDataCollection
 {
@@ -29,10 +35,34 @@ public static class BatchDataCollection
         return i >= 0 && i + 1 < args.Length ? args[i + 1] : fallback;
     }
 
+    static List<string> ListArg(string name) =>
+        (Arg(name, "") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
+
+    public static void BuildGsoPrefabs()
+    {
+        List<string> objects = ListArg("-objects");
+        if (objects.Count == 0)
+            throw new ArgumentException("-objects is required");
+        AssetDatabase.Refresh();
+        foreach (string name in objects)
+            Debug.Log("[BatchDataCollection] built " + GsoPrefabBuilder.Build($"Assets/3Dmodels/GSO/{name}/grasp_spec.json"));
+    }
+
+    static GameObject LoadPrefab(string name)
+    {
+        foreach (string dir in new[] { "Assets/Prefabs/YCB", "Assets/Prefabs/GSO" })
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{dir}/{name}.prefab");
+            if (prefab != null)
+                return prefab;
+        }
+        throw new ArgumentException("Prefab not found: " + name);
+    }
+
     public static void Build()
     {
-        List<string> preshapes = (Arg("-preshapes", "") ?? "")
-            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
+        List<string> preshapes = ListArg("-preshapes");
+        List<string> prefabNames = ListArg("-prefabs");
         int perGrasp = int.Parse(Arg("-perGrasp", "50"));
         uint seed = uint.Parse(Arg("-seed", "539662088"));
         string buildPath = Arg("-buildPath") ?? throw new ArgumentException("-buildPath is required");
@@ -43,6 +73,8 @@ public static class BatchDataCollection
             var scene = EditorSceneManager.OpenScene(ScenePath);
             var scenario = UnityEngine.Object.FindAnyObjectByType<FixedLengthScenario>();
             var wrist = scenario.randomizers.OfType<WristCameraMovement>().First();
+            if (prefabNames.Count > 0)
+                wrist.prefabs.SetOptions(prefabNames.Select(LoadPrefab));
             wrist.preshapeFilter = preshapes;
             wrist.graspTypeFilter = new List<string>();
             wrist.numIterationsPerGrasp = perGrasp;
@@ -62,7 +94,8 @@ public static class BatchDataCollection
             scenario.constants.iterationCount = scenario.constants.startIteration + pairs * perGrasp;
             EditorUtility.SetDirty(scenario);
             EditorSceneManager.SaveScene(scene);
-            Debug.Log($"[BatchDataCollection] preshapes=[{string.Join(",", preshapes)}] pairs={pairs} " +
+            Debug.Log($"[BatchDataCollection] prefabs={wrist.prefabs.categories.Count} " +
+                      $"preshapes=[{string.Join(",", preshapes)}] pairs={pairs} " +
                       $"perGrasp={perGrasp} iterationCount={scenario.constants.iterationCount} seed={seed}");
 
             Directory.CreateDirectory(Path.GetDirectoryName(buildPath));

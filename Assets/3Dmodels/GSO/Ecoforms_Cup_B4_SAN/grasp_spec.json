@@ -1,0 +1,14 @@
+{
+  "name": "Ecoforms_Cup_B4_SAN",
+  "category": "glass",
+  "grasps": [
+    {
+      "name": "sphere_4fingers[nops]",
+      "approach": "top"
+    },
+    {
+      "name": "large_diameter[susd]",
+      "approach": "left"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Threshold_Porcelain_Teapot_White",
+  "category": "teapot",
+  "farthest_to": "left",
+  "grasps": [
+    {
+      "name": "adducted_thumb",
+      "approach": "right"
+    },
+    {
+      "name": "tripod[nops]",
+      "approach": "top"
+    }
+  ]
+}

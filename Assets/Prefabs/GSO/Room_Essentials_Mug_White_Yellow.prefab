@@ -139,9 +139,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1673385329060215683}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.08392989, y: 0.70210814, z: -0.08392989, w: 0.70210814}
-  m_LocalPosition: {x: -0.0721792, y: 0.017039932, z: 0.05238601}
-  m_LocalScale: {x: 0.05999999, y: 0.019999998, z: 0.029999992}
+  m_LocalRotation: {x: 0.70210814, y: -0.08392989, z: -0.70210814, w: -0.08392989}
+  m_LocalPosition: {x: 0.06870056, y: -0.017129831, z: 0.052385997}
+  m_LocalScale: {x: 0.05999999, y: 0.019999996, z: 0.030000001}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7841077112562415612}
@@ -258,7 +258,7 @@ Transform:
   m_Children:
   - {fileID: 4590042314232418094}
   - {fileID: 8530571220186763510}
-  - {fileID: 5382160346491443875}
+  - {fileID: 5065092731393465190}
   m_Father: {fileID: 5545184467773630308}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &7523141817646796988
@@ -405,7 +405,7 @@ MonoBehaviour:
   category: mug
   source: GSO
   sourceName: Room_Essentials_Mug_White_Yellow
---- !u!1 &6128097653436994648
+--- !u!1 &6392354031387562511
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -413,47 +413,47 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 5382160346491443875}
-  - component: {fileID: 3915717457831352398}
-  - component: {fileID: 5914941048180562600}
-  - component: {fileID: 7031753207633866013}
+  - component: {fileID: 5065092731393465190}
+  - component: {fileID: 4098587469319029423}
+  - component: {fileID: 2117486534381858793}
+  - component: {fileID: 760385425338757312}
   m_Layer: 0
-  m_Name: 'prismatic_2fingers[susd]'
+  m_Name: 'adducted_thumb[susd]'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!4 &5382160346491443875
+--- !u!4 &5065092731393465190
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6128097653436994648}
+  m_GameObject: {fileID: 6392354031387562511}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.70210814, y: -0.08392989, z: -0.70210814, w: -0.08392989}
-  m_LocalPosition: {x: 0.06477091, y: -0.016176708, z: 0.052385997}
-  m_LocalScale: {x: 0.014999998, y: 0.009999998, z: 0.020000003}
+  m_LocalRotation: {x: 0.08392989, y: 0.70210814, z: -0.08392989, w: 0.70210814}
+  m_LocalPosition: {x: -0.0721792, y: 0.017039932, z: 0.05238601}
+  m_LocalScale: {x: 0.029999996, y: 0.009999999, z: 0.019999994}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7841077112562415612}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &3915717457831352398
+--- !u!33 &4098587469319029423
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6128097653436994648}
+  m_GameObject: {fileID: 6392354031387562511}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!65 &5914941048180562600
+--- !u!65 &2117486534381858793
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6128097653436994648}
+  m_GameObject: {fileID: 6392354031387562511}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -468,13 +468,13 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!23 &7031753207633866013
+--- !u!23 &760385425338757312
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6128097653436994648}
+  m_GameObject: {fileID: 6392354031387562511}
   m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
