@@ -3,6 +3,8 @@
     python tools/render.py render_specs/gso_pilot.json            # build, render, verify, record
     python tools/render.py render_specs/gso_pilot.json --dry-run  # checks and commands only
     python tools/render.py --verify D:/renders/<run_id> --build-log D:/builds/<run_id>/build.log --per-grasp 50
+    python tools/render.py --make-record D:/renders/<run_id>                 # (re)write <run_id>/record/
+    python tools/render.py --compare D:/renders/<new_run> D:/renders/<run_id>/record   # needs numpy + Pillow
 
 A render is only made from a committed generator state, so the commit alone pins every
 grasp_spec.json, prefab, scene and script. The script refuses to run when:
@@ -17,6 +19,17 @@ count per sequence, per_grasp sequences for every object-grasp pair of the build
 <out-root>/<run_id>/generation.json. The build folder is deleted after a successful run (it can be
 rebuilt from the commit and the spec) unless --keep-build; its log is copied into the run folder.
 
+Record: the frames are not archived (a re-render from the same commit and spec reproduces every
+sequence's parameters exactly and the pixels up to GPU noise, about 1 grey level). What is kept is
+<run_id>/record/ (~2 GB, a few dozen files, so it uploads fast):
+    generation.json, build.log, player.log
+    perception.zip        all Perception JSON (labels and sequence_parameters of every sequence)
+    reference.json        the first sequence of every object-grasp pair: index, id, labels, parameters
+    reference/NN_<object>__<grasp>.zip   the 90 frames of that sequence
+--compare checks a later re-render against a record: same labels and sequence_parameters for every
+sequence, and reference frames within --tol-mean (mean absolute difference, grey levels) and
+--tol-frac (fraction of pixels differing by more than 10).
+
 Spec (JSON, committed under render_specs/):
     name          run name, used in the run id
     prefabs       prefab names (Assets/Prefabs/YCB or Assets/Prefabs/GSO); [] = the scene's list
@@ -26,7 +39,7 @@ Spec (JSON, committed under render_specs/):
     resolution    [width, height] of the player window = capture resolution
     expected_pairs   optional: fail before rendering if the build selects a different number of pairs
 
-Standard library only, Python >= 3.9.
+Standard library only (Python >= 3.9), except --compare, which needs numpy and Pillow.
 """
 import argparse
 import datetime as dt
@@ -37,7 +50,8 @@ import re
 import shutil
 import subprocess
 import sys
-from collections import Counter
+import zipfile
+from collections import Counter, OrderedDict
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -164,16 +178,58 @@ def grasp_type(child: str) -> str:
     return child.split("[", 1)[0]
 
 
-def verify_output(out: Path, pairs: list[str], per_grasp: int) -> dict:
-    """Group the captures by sequence and compare against per_grasp sequences per build pair."""
+def capture_index(name: str) -> int:
+    return int(re.findall(r"\d+", Path(name).stem)[-1])
+
+
+def group_captures(texts) -> "OrderedDict[str, list[dict]]":
+    """Captures of all captures_NNN.json texts (in file order), grouped by sequence in generation order."""
+    seqs: OrderedDict[str, list[dict]] = OrderedDict()
+    for text in texts:
+        for cap in json.loads(text)["captures"]:
+            seqs.setdefault(cap["sequence_id"], []).append(cap)
+    return seqs
+
+
+def dataset_dir(out: Path) -> Path:
     datasets = sorted(out.glob("*/Dataset*")) or sorted(out.glob("Dataset*"))
     if len(datasets) != 1:
-        return {"ok": False, "error": f"expected one Dataset* folder under {out}, found {len(datasets)}"}
-    files = sorted(datasets[0].glob("captures_*.json"), key=lambda p: int(re.findall(r"\d+", p.stem)[-1]))
-    seqs: dict[str, list[dict]] = {}
-    for f in files:
-        for cap in json.loads(f.read_text())["captures"]:
-            seqs.setdefault(cap["sequence_id"], []).append(cap)
+        raise RuntimeError(f"expected one Dataset* folder under {out}, found {len(datasets)}")
+    return datasets[0]
+
+
+def sequences_from_render(out: Path) -> "OrderedDict[str, list[dict]]":
+    files = sorted(dataset_dir(out).glob("captures_*.json"), key=lambda p: capture_index(p.name))
+    return group_captures(f.read_text() for f in files)
+
+
+def sequences_from_record(record: Path) -> "OrderedDict[str, list[dict]]":
+    with zipfile.ZipFile(record / "perception.zip") as z:
+        names = sorted((n for n in z.namelist() if Path(n).name.startswith("captures_")), key=capture_index)
+        return group_captures(z.read(n).decode("utf-8") for n in names)
+
+
+def labelled(seqs: "OrderedDict[str, list[dict]]") -> list[dict]:
+    """Complete, single-label sequences in generation order (drops Perception's unlabelled warm-up capture)."""
+    out = []
+    for seq_id, caps in seqs.items():
+        caps = sorted(caps, key=lambda c: c["step"])
+        anns = [a for c in caps for a in c["annotations"] if a.get("model_type") == "GraspTypeAnnotationDefinition"]
+        labels = {(a["grasp_type_values"]["instance_name"], a["grasp_type_values"]["grasp_type_name"],
+                   a["grasp_type_values"]["preshape_name"]) for a in anns}
+        if len(labels) == 1 and [c["step"] for c in caps] == list(range(len(caps))):
+            out.append({"sequence_id": seq_id, "labels": list(next(iter(labels))),
+                        "sequence_parameters": anns[0].get("sequence_parameters"), "captures": caps})
+    return out
+
+
+def verify_output(out: Path, pairs: list[str], per_grasp: int) -> dict:
+    """Group the captures by sequence and compare against per_grasp sequences per build pair."""
+    try:
+        ds = dataset_dir(out)
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+    seqs = sequences_from_render(out)
 
     lengths = Counter(len(c) for c in seqs.values())
     frames = lengths.most_common(1)[0][0] if lengths else 0
@@ -201,7 +257,7 @@ def verify_output(out: Path, pairs: list[str], per_grasp: int) -> dict:
     unexpected_skips = [s for s in skipped if s["labels"]]
     return {
         "ok": not mismatched and not unexpected_skips and frames > 0,
-        "dataset_folder": str(datasets[0].relative_to(out)).replace("\\", "/"),
+        "dataset_folder": str(ds.relative_to(out)).replace("\\", "/"),
         "sequences": sum(valid.values()),
         "expected_sequences": sum(expected.values()),
         "frames_per_sequence": frames,
@@ -222,6 +278,90 @@ def image_size(out: Path) -> list[int] | None:
 
 def folder_bytes(path: Path) -> int:
     return sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+
+
+def rgb_dir(out: Path) -> Path:
+    (rgb,) = dataset_dir(out).parent.glob("RGB*")
+    return rgb
+
+
+def make_record(out: Path) -> dict:
+    """Write <out>/record/: logs, generation.json, zipped Perception JSON and one zipped reference
+    sequence per object-grasp pair (see the module docstring)."""
+    rec = out / "record"
+    if rec.exists():
+        raise RuntimeError(f"{rec} already exists")
+    (rec / "reference").mkdir(parents=True)
+    for name in ("generation.json", "build.log", "player.log"):
+        if (out / name).exists():
+            shutil.copy2(out / name, rec / name)
+    ds = dataset_dir(out)
+    with zipfile.ZipFile(rec / "perception.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+        for f in sorted(ds.iterdir()):
+            if f.is_file():
+                z.write(f, f"{ds.name}/{f.name}")
+    rgb = rgb_dir(out)
+    refs, seen = [], set()
+    for i, s in enumerate(labelled(sequences_from_render(out))):
+        key = tuple(s["labels"])  # (object instance, grasp type, preshape)
+        if key in seen:
+            continue
+        seen.add(key)
+        name = f"{len(refs):02d}_{key[0]}__{key[1]}.zip"
+        with zipfile.ZipFile(rec / "reference" / name, "w", zipfile.ZIP_STORED) as z:  # PNG is compressed
+            for c in s["captures"]:
+                z.write(rgb / Path(c["filename"]).name, f"{c['step']:02d}.png")
+        refs.append({"index": i, "sequence_id": s["sequence_id"], "labels": s["labels"],
+                     "sequence_parameters": s["sequence_parameters"], "frames": f"reference/{name}"})
+    (rec / "reference.json").write_text(json.dumps(refs, indent=1) + "\n", encoding="utf-8")
+    return {"references": len(refs), "files": sum(1 for f in rec.rglob("*") if f.is_file()),
+            "bytes": folder_bytes(rec)}
+
+
+def compare(new_out: Path, record: Path, tol_mean: float, tol_frac: float) -> dict:
+    """Check a re-render against a record: labels and sequence_parameters of every sequence, and the
+    pixels of the reference sequences."""
+    import io
+
+    import numpy as np
+    from PIL import Image
+
+    old, new = labelled(sequences_from_record(record)), labelled(sequences_from_render(new_out))
+    n = min(len(old), len(new))
+    label_diff = [i for i in range(n) if old[i]["labels"] != new[i]["labels"]]
+    param_diff = [i for i in range(n) if old[i]["sequence_parameters"] != new[i]["sequence_parameters"]]
+    rgb = rgb_dir(new_out)
+    frames = []
+    for r in json.loads((record / "reference.json").read_text(encoding="utf-8")):
+        i = r["index"]
+        if i >= len(new) or new[i]["labels"] != r["labels"]:
+            frames.append({"frames": r["frames"], "ok": False, "error": "no matching sequence"})
+            continue
+        means, fracs = [], []
+        with zipfile.ZipFile(record / r["frames"]) as z:
+            for c in new[i]["captures"]:
+                ref = np.asarray(Image.open(io.BytesIO(z.read(f"{c['step']:02d}.png"))).convert("RGB"), np.int16)
+                cur = np.asarray(Image.open(rgb / Path(c["filename"]).name).convert("RGB"), np.int16)
+                if ref.shape != cur.shape:
+                    means, fracs = [float("inf")], [1.0]
+                    break
+                d = np.abs(ref - cur)
+                means.append(float(d.mean()))
+                fracs.append(float((d.max(-1) > 10).mean()))
+        stat = {"frames": r["frames"], "mean_abs": round(float(np.mean(means)), 3),
+                "worst_frame_mean_abs": round(max(means), 3), "frac_gt10": round(float(np.mean(fracs)), 5)}
+        stat["ok"] = stat["mean_abs"] <= tol_mean and stat["frac_gt10"] <= tol_frac
+        frames.append(stat)
+    return {
+        "ok": len(old) == len(new) and not label_diff and not param_diff and all(f["ok"] for f in frames),
+        "sequences": {"record": len(old), "new": len(new)},
+        "label_mismatches": len(label_diff), "parameter_mismatches": len(param_diff),
+        "first_mismatches": sorted(set(label_diff + param_diff))[:10],
+        "tolerance": {"mean_abs": tol_mean, "frac_gt10": tol_frac},
+        "reference_worst": max(frames, key=lambda f: f.get("mean_abs", float("inf")), default=None),
+        "reference_failed": [f for f in frames if not f["ok"]],
+        "references": frames,
+    }
 
 
 # ---------------------------------------------------------------- main
@@ -247,8 +387,20 @@ def main():
     p.add_argument("--verify", type=Path, help="only check an existing output folder (needs --build-log)")
     p.add_argument("--build-log", type=Path)
     p.add_argument("--per-grasp", type=int, default=50)
+    p.add_argument("--make-record", type=Path, metavar="RUN_DIR", help="write RUN_DIR/record/ for an existing run")
+    p.add_argument("--compare", type=Path, nargs=2, metavar=("NEW_RUN_DIR", "RECORD_DIR"),
+                   help="check a re-render against the record of an earlier run")
+    p.add_argument("--tol-mean", type=float, default=2.0, help="max mean absolute pixel difference (grey levels)")
+    p.add_argument("--tol-frac", type=float, default=0.005, help="max fraction of pixels differing by more than 10")
     args = p.parse_args()
 
+    if args.make_record:
+        print(json.dumps(make_record(args.make_record), indent=1))
+        return
+    if args.compare:
+        report = compare(*args.compare, args.tol_mean, args.tol_frac)
+        print(json.dumps({k: v for k, v in report.items() if k != "references"}, indent=1))
+        sys.exit(0 if report["ok"] else 1)
     if args.verify:
         if not args.build_log:
             fail("--verify needs --build-log")
@@ -377,11 +529,15 @@ def main():
         record["output"] = check
         record["output"]["bytes"] = folder_bytes(out)
         record["status"] = "ok" if check["ok"] else "failed_verification"
+        if check["ok"]:
+            record["record"] = "record/"
     except Exception as e:  # noqa: BLE001 - recorded, then re-raised as exit code
         record["status"] = "failed"
         record["error"] = str(e)
     record["finished"] = now()
     save()
+    if record["status"] == "ok":  # after the final save, so record/ holds the final generation.json
+        print("record:", json.dumps(make_record(out)))
 
     if record["status"] == "ok" and not args.keep_build:
         shutil.rmtree(build_dir, ignore_errors=True)
