@@ -101,6 +101,8 @@ $RECYCLE.BIN/
 
 
 .vsconfig
+*.slnx
+__pycache__/
 
 app.config
 
@@ -112,4 +114,5 @@ python_scripts/*
 !Assets/Scripts/Data_collection*
 !Assets/Scenes/Data_collection*
 !python_scripts/Data_collection*
+!python_scripts/GSO
 .idea/

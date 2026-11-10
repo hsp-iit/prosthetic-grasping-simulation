@@ -1,0 +1,10 @@
+{
+  "name": "Threshold_Dinner_Plate_Square_Rim_White_Porcelain",
+  "category": "plate",
+  "grasps": [
+    {
+      "name": "adducted_thumb[border]",
+      "approach": "back"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+model {
+  file: "model.sdf"
+}
+name: "5_HTP"
+description: "5 HTP"
+version: 1
+authors {
+  name: "Google"
+  email: "scanned-objects@google.com"
+}
+legal {
+  copyright: "Copyright 2020 Google LLC."
+  license: "Creative Commons Attribution 4.0 International"
+}
+annotations {
+  key: "brand"
+  value: "Jarrow Formulas"
+}
+annotations {
+  key: "gtin"
+  value: "790011150435"
+}
+annotations {
+  key: "mpn"
+  value: "790011150435"
+}
+annotations {
+  key: "sku"
+  value: "HTP100"
+}
+compatibilities {
+  name: "Gazebo"
+  version {
+    major: 11
+  }
+}
+categories {
+  first: "Bottles and Cans and Cups"
+}

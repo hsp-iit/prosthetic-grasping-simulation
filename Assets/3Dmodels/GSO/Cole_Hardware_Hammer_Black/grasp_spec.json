@@ -1,0 +1,16 @@
+{
+  "name": "Cole_Hardware_Hammer_Black",
+  "category": "big_tool",
+  "grasps": [
+    {
+      "name": "small_diameter",
+      "approach": "top",
+      "offset": [
+        0.04,
+        0,
+        0
+      ],
+      "local_surface": true
+    }
+  ]
+}

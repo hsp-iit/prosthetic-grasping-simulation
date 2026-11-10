@@ -1,0 +1,14 @@
+{
+  "name": "Diamond_Visions_Scissors_Red",
+  "category": "small_tool",
+  "grasps": [
+    {
+      "name": "prismatic_4fingers",
+      "approach": "top"
+    },
+    {
+      "name": "adducted_thumb[border]",
+      "approach": "left"
+    }
+  ]
+}

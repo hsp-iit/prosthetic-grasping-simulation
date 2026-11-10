@@ -2,7 +2,7 @@ using System;
 using UnityEngine.Perception.Randomization.Parameters;
 using UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers.Tags;
 using UnityEngine.Perception.Randomization.Samplers;
-using UnityEngine.Rendering.HighDefinition;
+using UnityEngine.Rendering;
 
 namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
 {
@@ -43,8 +43,13 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
 
                 ceilingLamp.color = lightColorSampledValue;
 
-                HDAdditionalLightData lightData = ceilingLamp.GetComponent<HDAdditionalLightData>();
-                lightData.intensity = intensitySampledValue;
+                // The sampled intensity is expressed in the light's display unit
+                // (e.g. lumen), as the old HDAdditionalLightData.intensity setter
+                // expected. Since HDRP 17, Light.intensity is in the native unit
+                // (candela for spot lights), so convert it explicitly
+                ceilingLamp.intensity = LightUnitUtils.ConvertIntensity(
+                    ceilingLamp, intensitySampledValue, ceilingLamp.lightUnit,
+                    LightUnitUtils.GetNativeLightUnit(ceilingLamp.type));
             }
         }
     }

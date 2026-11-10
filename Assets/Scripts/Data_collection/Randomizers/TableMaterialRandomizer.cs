@@ -16,7 +16,7 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         /// The list of materials to sample and apply to target table
         /// </summary>
         [Tooltip("The list of materials to sample and apply to target table.")]
-        public MaterialParameter materials;
+        public CategoricalParameter<Material> materials;
 
         /// The sampler to get a sample float in range [0, 1], this will be used
         /// to decide whether to apply a random material to the object or not

@@ -1,0 +1,19 @@
+{
+  "name": "Room_Essentials_Mug_White_Yellow",
+  "category": "mug",
+  "farthest_to": "right",
+  "grasps": [
+    {
+      "name": "large_diameter[susd]",
+      "approach": "right"
+    },
+    {
+      "name": "sphere_4fingers[nops]",
+      "approach": "top"
+    },
+    {
+      "name": "adducted_thumb[susd]",
+      "approach": "left"
+    }
+  ]
+}

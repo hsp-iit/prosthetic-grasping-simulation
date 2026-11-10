@@ -1,0 +1,16 @@
+{
+  "name": "Threshold_Porcelain_Pitcher_White",
+  "category": "dispenser",
+  "farthest_to": "right",
+  "grasps": [
+    {
+      "name": "adducted_thumb",
+      "approach": "right",
+      "height": 0.65
+    },
+    {
+      "name": "sphere_4fingers[nops]",
+      "approach": "top"
+    }
+  ]
+}

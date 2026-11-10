@@ -14,6 +14,15 @@
 *.meta merge=unityyamlmerge eol=lf
 *.controller merge=unityyamlmerge eol=lf
 
+# Baked lighting data is binary: the eol=lf rule above corrupts it
+LightingData.asset binary
+
+# Hand-edited and script-written JSON: always LF. Otherwise a CRLF rewrite of an unchanged
+# file shows as modified on Windows, and tools/render.py refuses to run on a "dirty" tree.
+grasp_spec.json text eol=lf
+python_scripts/**/*.json text eol=lf
+render_specs/*.json text eol=lf
+
 
 ## git-lfs ##
 

@@ -1,0 +1,23 @@
+{
+  "dependencies": {
+    "com.unity.burst": "1.7.3",
+    "com.unity.collections": "1.2.4",
+    "com.unity.nuget.newtonsoft-json": "3.0.2",
+    "com.unity.render-pipelines.core": "12.1.7"
+  },
+  "description": "Tools for generating large-scale data sets for perception-based machine learning training and validation",
+  "displayName": "Perception",
+  "name": "com.unity.perception",
+  "unity": "2021.3",
+  "unityRelease": "7f1",
+  "version": "1.0.0-preview.1",
+  "upmCi": {
+    "footprint": "c972749a389135362c1709c8338e5aff4667e988"
+  },
+  "repository": {
+    "url": "https://github.com/Unity-Technologies/perception.git",
+    "type": "git",
+    "revision": "e74755dcf1c6adf252e62ab2fbab6a5e3eb49dad"
+  },
+  "_fingerprint": "0664dd6c5b0425e11089887198edb83127578449"
+}

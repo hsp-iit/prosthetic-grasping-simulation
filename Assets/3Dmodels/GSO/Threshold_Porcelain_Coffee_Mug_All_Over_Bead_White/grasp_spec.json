@@ -1,0 +1,19 @@
+{
+  "name": "Threshold_Porcelain_Coffee_Mug_All_Over_Bead_White",
+  "category": "mug",
+  "farthest_to": "right",
+  "grasps": [
+    {
+      "name": "large_diameter[susd]",
+      "approach": "left"
+    },
+    {
+      "name": "sphere_4fingers[nops]",
+      "approach": "top"
+    },
+    {
+      "name": "adducted_thumb[susd]",
+      "approach": "right"
+    }
+  ]
+}

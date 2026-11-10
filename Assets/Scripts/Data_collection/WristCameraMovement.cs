@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine.Perception.Randomization.Scenarios;
 using UnityEngine.Perception.Randomization.Samplers;
 using UnityEngine.Perception.Randomization.Parameters;
-using UnityEngine.Perception.Randomization.Randomizers.Utilities;
+using UnityEngine.Perception.Randomization.Utilities;
 
 namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
 {
@@ -81,16 +81,52 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         // The wrist flexion-extension will be perfomed towards (looking at) the other point
         private UniformSampler samplerTargetPoint;
 
-        private bool isPositive;
-
         private float framesPerIteration;
 
         // The 2d points describing the minimum jerk straight line trajectory
         private List<Tuple<float, float>> minimumJerkPoints;
 
-        // Since there is a little displacement between the reference system of the camera 
+        // Since there is a little displacement between the reference system of the camera
         // and where the camera is placed
+        // NOTE: the camera stops REFERENCE_TO_CAMERA_OFFSET before the target point, and the
+        //       hand (child of the camera) is placed at about the same distance ahead of the
+        //       camera, hence in the last frames the hand mesh reaches the grasp target and may
+        //       intersect the object. This is deliberately left as is: the hand is a rigid mesh
+        //       (some overlap is unavoidable at the grasp moment), and increasing this offset
+        //       would change the final framing of every sequence
         private float REFERENCE_TO_CAMERA_OFFSET = 0.2f;
+
+        /// <summary>
+        /// The parameters sampled for a sequence. They are reported by the GraspTypeLabeler,
+        /// such that the generated data can be analyzed afterwards (e.g., the bias 
+        /// introduced by re-sampling the camera-object poses until the trajectory is valid)
+        /// </summary>
+        public struct SequenceParameters
+        {
+            // How many camera-object poses were sampled before finding a valid trajectory
+            public int placementAttempts;
+            // World position of the camera at the beginning of the sequence
+            public Vector3 cameraStartPosition;
+            // World position of the point reached by the straight line trajectory
+            public Vector3 targetPoint;
+            // Whether targetPoint is the upper (true) or lower (false) extremity of
+            // the grasp parallelepiped
+            public bool reachUpPoint;
+            public Vector3 objectPosition;
+            public float objectRotationY;
+            public float objectRotationZ;
+            // Total pronation-supination angle (degrees, 0 if not performed) and
+            // its starting frame and duration
+            public float psAngle;
+            public int psStartFrame;
+            public int psDurationFrames;
+            public int feStartFrame;
+        }
+
+        /// <summary>
+        /// The parameters sampled for the current sequence
+        /// </summary>
+        public SequenceParameters currentSequenceParameters { get; private set; }
 
         /// <summary>
         /// The plane onto which randomly place the wrist camera before starting the sequence
@@ -103,7 +139,7 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         /// The list of prefabs from which to sample one object per iteration
         /// </summary>
         [Tooltip("The list of prefabs from which to sample one object per iteration.")]
-        public GameObjectParameter prefabs;
+        public CategoricalParameter<GameObject> prefabs;
 
         private GameObject m_Container;
         private GameObjectOneWayCache m_GameObjectOneWayCache;
@@ -129,6 +165,33 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         private int iterationsCounter = -1;
         public int numIterationsPerGrasp;
 
+        /// <summary>
+        /// If not empty, only the grasps labeled with one of these preshapes
+        /// (e.g. pinch_3) are executed, the other grasps of the objects are skipped
+        /// </summary>
+        [Tooltip("If not empty, only the grasps labeled with one of these preshapes (e.g. pinch_3) are executed.")]
+        public List<string> preshapeFilter = new List<string>();
+        /// <summary>
+        /// If not empty, only the grasps of one of these grasp types
+        /// (e.g. tripod) are executed, the other grasps of the objects are skipped
+        /// </summary>
+        [Tooltip("If not empty, only the grasps of one of these grasp types (e.g. tripod) are executed.")]
+        public List<string> graspTypeFilter = new List<string>();
+
+        /// <summary>
+        /// Whether a grasp parallelepiped passes preshapeFilter and graspTypeFilter
+        /// </summary>
+        public bool IsGraspSelected(string graspName)
+        {
+            if (preshapeFilter != null && preshapeFilter.Count > 0
+                && !preshapeFilter.Contains(GraspCatalog.GetPreshape(graspName)))
+                return false;
+            if (graspTypeFilter != null && graspTypeFilter.Count > 0
+                && !graspTypeFilter.Contains(GraspCatalog.ParseGraspName(graspName).graspType))
+                return false;
+            return true;
+        }
+
         private List<Tuple<int, int>> objAndGraspPairs;
 
         private GameObject graspToExecute;
@@ -137,7 +200,7 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         /// The list of materials to sample and apply to target objects
         /// </summary>
         [Tooltip("The list of materials to sample and apply to target objects.")]
-        public MaterialParameter materialsObject;
+        public CategoricalParameter<Material> materialsObject;
         /// The sampler to get a sample float in range [0, 1]. This will be used
         /// to decide whether to apply a random material to the object or not.
         private UniformSampler samplerApplyMaterialObject;
@@ -149,6 +212,9 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         // We need to store the original material, such that 
         // at the end of each sequence we can restore it (if changed)
         private Material originalObjMaterial = null;
+        // The copy of the sampled material applied to the object (if any), such that
+        // the material asset itself is never modified. Destroyed at the end of each sequence
+        private Material sampledObjMaterialInstance = null;
 
         // Samplers for the objectmaterials (when applied to the object) to randomly 
         // change the metallic and smoothness properties (within a 
@@ -188,7 +254,7 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         /// The list of materials to sample and apply to the hand 
         /// </summary>
         [Tooltip("The list of materials to sample and apply to the hand")]
-        public MaterialParameter materialsHand;
+        public CategoricalParameter<Material> materialsHand;
         private UniformSampler samplerApplyMaterialHand;
         /// <summary>
         /// A float value between 0 and 1. The higher the value, the more likely it is
@@ -199,17 +265,24 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         // at the end of each sequence we can restore it (if changed)
         private Material originalHandMaterial = null;
 
+        // Set when the simulation is being stopped. SimulationStopper.Stop() does not take
+        // effect immediately (e.g., in the Editor play mode ends at the end of the frame), 
+        // hence this flag is used to not execute the remaining code of this randomizer
+        private bool isStopped = false;
+
+        private void StopSimulation(string message)
+        {
+            Debug.LogError(message);
+            SimulationStopper.Stop();
+            isStopped = true;
+        }
+
 
         private void randomHandTransform()
         {
             float sampledFloat = samplerApplyHandRandomization.Sample();
             if (sampledFloat <= samplingRangeHandInView)
             {
-                // Store the current pose of the hand (i.e., the one set in the editor), 
-                // since at the end of the sequence we will need to set it back
-                initialHandPosition = hand.transform.localPosition;
-                initialHandRotation = hand.transform.localRotation;
-
                 Vector3 position = Vector3.zero;
                 Quaternion rotation = Quaternion.Euler(0, 0, 0);
 
@@ -242,13 +315,13 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
                 }
                 else if (hand.name.Contains("Hannes_ARM"))
                 {
-                    Debug.LogError("Hannes_ARM random hand transformation not implemented yet");
-                    UnityEditor.EditorApplication.isPlaying = false;
+                    StopSimulation("Hannes_ARM random hand transformation not implemented yet");
+                    return;
                 }
                 else
                 {
-                    Debug.LogError("Unknown hand model");
-                    UnityEditor.EditorApplication.isPlaying = false;
+                    StopSimulation("Unknown hand model");
+                    return;
                 }
 
                 hand.transform.localPosition = position;
@@ -263,18 +336,18 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             {
                 if (hand.name.Contains("Arm02"))
                 {
-                    originalHandMaterial = hand.GetComponent<Renderer>().material;
-                    hand.GetComponent<Renderer>().material = materialsHand.Sample();
+                    // Use sharedMaterial, since the material getter would instantiate
+                    // a new copy of the material at each call
+                    originalHandMaterial = hand.GetComponent<Renderer>().sharedMaterial;
+                    hand.GetComponent<Renderer>().sharedMaterial = materialsHand.Sample();
                 }
                 else if (hand.name.Contains("Hannes_ARM"))
                 {
-                    Debug.LogError("Hannes_ARM random hand material not implemented yet");
-                    UnityEditor.EditorApplication.isPlaying = false;
+                    StopSimulation("Hannes_ARM random hand material not implemented yet");
                 }
                 else
                 {
-                    Debug.LogError("Unknown hand model");
-                    UnityEditor.EditorApplication.isPlaying = false;
+                    StopSimulation("Unknown hand model");
                 }
             }
         }
@@ -285,18 +358,23 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             float sampledFloat = samplerApplyMaterialObject.Sample();
             if (sampledFloat <= samplingRangeObjectMaterial)
             {
-                originalObjMaterial = instance.transform.Find("textured")
-                    .GetComponent<Renderer>().material;
+                // Use sharedMaterial, since the material getter would instantiate
+                // a new copy of the material at each call
+                Renderer objRenderer = instance.transform.Find("textured").GetComponent<Renderer>();
+                originalObjMaterial = objRenderer.sharedMaterial;
+                // Work on a copy of the sampled material, since its properties are 
+                // modified below and the material asset must not be changed. The name is 
+                // kept since the GraspTypeLabeler uses it
                 Material sampledMaterial = materialsObject.Sample();
-                instance.transform.Find("textured")
-                    .GetComponent<Renderer>().material = sampledMaterial;
+                sampledObjMaterialInstance = new Material(sampledMaterial) { name = sampledMaterial.name };
+                objRenderer.sharedMaterial = sampledObjMaterialInstance;
 
                 // Modify the metallic and smoothness of the material
                 float sampledMetallicValue = samplerObjectMetallicProperty.Sample();
                 float sampledSmoothnessValue = samplerObjectSmoothnessProperty.Sample();
-                sampledMaterial.SetFloat("_Metallic", 
+                sampledObjMaterialInstance.SetFloat("_Metallic", 
                                          objectMetallicBaseValue + sampledMetallicValue);
-                sampledMaterial.SetFloat("_Smoothness", 
+                sampledObjMaterialInstance.SetFloat("_Smoothness", 
                                          objectSmoothnessBaseValue + sampledSmoothnessValue);
             }
         }
@@ -308,8 +386,10 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             float sampleZ = samplerZobjectPlacement.Sample();
 
             // ..but, regarding some objects, set a fixed x value
-            // in order to put the object on the table border
-	        if (instanceToPlace.name.Contains("048_hammer")
+            // in order to put the object on the table border. Besides the objects
+            // listed here, it is done for the grasps having the [border] tag
+	        if (GraspCatalog.ParseGraspName(graspToExecute.name).onTableBorder
+                || instanceToPlace.name.Contains("048_hammer")
 	            || instanceToPlace.name.Contains("029_plate")
                 || (instanceToPlace.name.Contains("026_sponge")
                     && graspToExecute.name.Contains("adducted_thumb"))
@@ -328,17 +408,20 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
                 sampleX = - planeObjectPlacement.GetComponent<Renderer>().bounds.extents.x - 0.08f;
             }
 
-            // Compute the y offset necessary to have the object standing 
-            // on the table (i.e., neither on air nor inside the table).
-            // Get the distance from the origin of the object reference frame to
-            // the lowest part of the object.
-            float y_offset = instanceToPlace.transform.Find("textured").gameObject.
-                GetComponent<Renderer>().bounds.extents.y;
-
             // Place the object onto the plane
-            Vector3 instancePlacement = planeObjectPlacement.transform.position 
-                                        + new Vector3(sampleX, y_offset, sampleZ);
+            Vector3 instancePlacement = planeObjectPlacement.transform.position
+                                        + new Vector3(sampleX, 0f, sampleZ);
             instanceToPlace.transform.position = instancePlacement;
+
+            // Then shift it along y such that its lowest part lies onto the plane,
+            // in order to have the object standing on the table (i.e., neither on air
+            // nor inside the table). The world bounds are used, hence the object
+            // rotation must already be set, and no assumption is made on where the
+            // origin of the object reference frame is w.r.t. the mesh.
+            float y_offset = planeObjectPlacement.transform.position.y
+                             - instanceToPlace.transform.Find("textured").gameObject.
+                                 GetComponent<Renderer>().bounds.min.y;
+            instanceToPlace.transform.position += new Vector3(0f, y_offset, 0f);
         }
 
         private void randomObjectRotation(GameObject instanceToRotate, GameObject graspToExecute)
@@ -430,7 +513,7 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         protected override void OnAwake()
         {
             // Get the sequence length
-            framesPerIteration = (float)((FixedLengthScenario)scenario).constants.framesPerIteration;
+            framesPerIteration = (float)((FixedLengthScenario)scenario).framesPerIteration;
 
             // Get the plane ranges onto which randomly put the camera
             float rangeYwrist = planeWristPlacement.GetComponent<Renderer>().bounds.extents.y;
@@ -465,10 +548,7 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             // where:
             // - idxObj is the index of the object in the prefabs list
             // - idxGraspInObj is the index of the grasp in the children hierarchy
-            // Furthermore, due to how the GraspTypeLabeler works, during the sequence
-            // all the grasps of all the objects must be deactivated, except the one
-            // corresponding to the label of that sequence. Hence deactivate all grasps
-            // here, they will be activated one at a time later
+            // The grasps not passing preshapeFilter and graspTypeFilter are skipped
             objAndGraspPairs = new List<Tuple<int, int>>();
             GameObject[] objects = prefabs.categories.Select(element => element.Item1).ToArray();
             for (int idxObj = 0; idxObj < objects.Length; idxObj++)
@@ -476,16 +556,24 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
                 Transform children = objects[idxObj].transform.Find("textured");
                 for (int idxGraspInObj = 0; idxGraspInObj < children.childCount; idxGraspInObj++)
                 {
-                    children.GetChild(idxGraspInObj).gameObject.SetActive(false);
-                    objAndGraspPairs.Add(Tuple.Create(idxObj, idxGraspInObj));
+                    if (IsGraspSelected(children.GetChild(idxGraspInObj).name))
+                    {
+                        objAndGraspPairs.Add(Tuple.Create(idxObj, idxGraspInObj));
+                    }
                 }
+            }
+            if (objAndGraspPairs.Count == 0)
+            {
+                StopSimulation("No object-grasp pair to execute: check the prefabs list " +
+                               "and the preshape and grasp type filters");
+                return;
             }
 
             FixedLengthScenario castedScenario = (FixedLengthScenario)scenario;
             int totalIterations = castedScenario.constants.iterationCount - castedScenario.constants.startIteration;
             if (objAndGraspPairs.Count * numIterationsPerGrasp != totalIterations)   
             {
-                Debug.LogError("Wrong value assigned in FixedLengthScenario for " +
+                StopSimulation("Wrong value assigned in FixedLengthScenario for " +
                                "startIteration and iterationCount fields: " +
                                "there are " + objAndGraspPairs.Count + 
                                " object-grasp pairs, each object-grasp pair is executed for " +
@@ -493,8 +581,6 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
                                + objAndGraspPairs.Count * numIterationsPerGrasp +
                                ". However, the number of iterations declared " +
                                "in FixedLengthScenario is " + totalIterations);
-                // Stop execution
-                UnityEditor.EditorApplication.isPlaying = false;
             }
 
             // The sampler for object rotation around y axis 
@@ -526,6 +612,13 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             // To decide whether or not to apply the hand position and rotation randomization
             samplerApplyHandRandomization = new UniformSampler(0, 1);
 
+            // Store the initial pose of the hand (i.e., the one set in the editor), since
+            // at the end of each sequence we will need to set it back. This must be done
+            // here (and not only when the hand pose is randomized), otherwise the hand
+            // would be reset to the default (zero) values
+            initialHandPosition = hand.transform.localPosition;
+            initialHandRotation = hand.transform.localRotation;
+
             // The value inserted here into the samplers are HARD-CODED by several trails
             // into the unity editor to manually check what is the reasonable range of values
             // to randomize to have the hand in random positions in the upper part of the camera
@@ -540,13 +633,11 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             }
             else if (hand.name.Contains("Hannes_ARM"))
             {
-                Debug.LogError("Hannes_ARM range of values not implemented yet");
-                UnityEditor.EditorApplication.isPlaying = false;
+                StopSimulation("Hannes_ARM range of values not implemented yet");
             }
             else
             {
-                Debug.LogError("Unknown hand model");
-                UnityEditor.EditorApplication.isPlaying = false;
+                StopSimulation("Unknown hand model");
             }
 
             samplerApplyMaterialHand = new UniformSampler(0, 1);
@@ -578,10 +669,15 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         /// </summary>
         protected override void OnIterationStart()
         {
+            if (isStopped)
+                return;
+
             randomWristCameraPlacement();
 
             randomHandTransform();
             randomHandMaterial();
+            if (isStopped)
+                return;
 
             iterationsCounter++;
             // It indicates when to get a new object-grasp pair from the list. That is, when 
@@ -599,22 +695,65 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             objInScene = m_GameObjectOneWayCache.GetOrInstantiate(idxObj);
             graspToExecute = objInScene.transform.Find("textured").GetChild(idxGraspInObj).gameObject;
 
-            randomObjectPlacement(objInScene, graspToExecute);
+            // Due to how the GraspTypeLabeler works, during the sequence all the grasps 
+            // of the object must be deactivated, except the one corresponding to the label 
+            // of that sequence (the current iteration will be labeled with the active grasp
+            // child of the object). This is done on the instance in scene, such that the
+            // prefab assets are never modified.
+            // The grasp parallelepipeds are only needed for their colliders, hence their
+            // renderers are disabled: otherwise (even if with a transparent material) they
+            // would be rendered by the labelers (the Labeling component is on the object
+            // root, hence it applies to all its child renderers), resulting in segmentation
+            // masks and bounding boxes containing the grasp parallelepiped
+            Transform grasps = objInScene.transform.Find("textured");
+            for (int idxGrasp = 0; idxGrasp < grasps.childCount; idxGrasp++)
+            {
+                GameObject grasp = grasps.GetChild(idxGrasp).gameObject;
+                grasp.SetActive(idxGrasp == idxGraspInObj);
+                Renderer graspRenderer = grasp.GetComponent<Renderer>();
+                if (graspRenderer != null)
+                {
+                    graspRenderer.enabled = false;
+                }
+            }
+
+            // The rotation must be set before the placement, which depends on it
             randomObjectRotation(objInScene, graspToExecute);
+            randomObjectPlacement(objInScene, graspToExecute);
 
             randomObjectMaterial(objInScene);
 
             if (newBatch || iterationsCounter == 0)
             {
-                // Activate the grasp for the novel object-grasp pair. This is needed for 
-                // the GraspTypeLabeler, since the current iteration will be labeled with 
-                // the activate grasp child of the object.
-                graspToExecute.SetActive(true);
                 Debug.Log("[INFO] Starting sequences for [" 
                           + objInScene.name + "][" + graspToExecute.name + "]");
             }
 
-            // Check whether the camera-to-grasp straight line trajectory is collision-free
+            // Choose the point of the grasp to reach. It will randomly be the upper or the lower
+            // extremity (along z axis) of the grasp parallelepiped.
+            // targetPoint is used to determine the straight line
+            //  trajectory from the camera to targetPoint, which is one 
+            //  of the two extremity of the grasp parallelepiped
+            // targetFePoint is the point towards which the camera will
+            //  start performing, at a certain time, the flexion-extension
+            //  (which is the other extremity of the grasp parallelepiped)
+            bool reachUpPoint = samplerTargetPoint.Sample() > 0.5;
+            // The extremities are taken from the BoxCollider (the same shape used by the
+            // collision check below), without assuming it is centered on the grasp origin
+            BoxCollider graspCollider = graspToExecute.GetComponent<BoxCollider>();
+            Vector3 halfHeightOffset = new Vector3(0f, 0f, graspCollider.size.z / 2f);
+
+            // Check whether the camera-object pose is valid, i.e.:
+            // (1) the grasp is visible from the camera: the line from the initial camera 
+            //     position to the center of the grasp parallelepiped must hit the grasp 
+            //     before anything else (e.g. another part of the object, the table, etc..)
+            // (2) the straight line trajectory actually travelled by the camera is
+            //     collision-free: from the initial position (moved backwards by 
+            //     REFERENCE_TO_CAMERA_OFFSET, see below) to where the camera stops, i.e. 
+            //     REFERENCE_TO_CAMERA_OFFSET before the chosen extremity of the grasp
+            //     parallelepiped. Only the grasp parallelepiped itself can be crossed.
+            // The extremity itself is not required to be visible, since it can lie inside
+            // the object (e.g. a grasp parallelepiped across the lid of a can)
             RaycastHit hitInfo;
             Vector3 targetPoint = Vector3.zero;     // junk, it will be correctly initilized below
             int MAX_ATTEMPTS = 1000;
@@ -625,56 +764,65 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
                 // otherwise the Linecast would detect the past object 
                 Physics.SyncTransforms();
 
-                targetPoint = graspToExecute.transform.position;
-                // A little change to targetPoint: instead of moving towards
-                //  the central point of the grasp parallelepiped (as happens with
-                //  the line above), we will towards a random point onto
-                //  the grasp parallelepiped (as happens in the line below)
-                //targetPoint = GetRandomPointInsideCollider(graspToExecute.GetComponent<BoxCollider>());
-
-                if (! Physics.Linecast(wristCamera.transform.position, targetPoint, out hitInfo))
+                Vector3 targetUpPoint = graspToExecute.transform.TransformPoint(graspCollider.center - halfHeightOffset);
+                Vector3 targetDownPoint = graspToExecute.transform.TransformPoint(graspCollider.center + halfHeightOffset);
+                if (reachUpPoint)
                 {
-                    Debug.LogError("Something went wrong: no one collision " +
-                                   "found. Stopping execution . . .");
-                    //Debug.DrawLine(wristCamera.transform.position, target.position, Color.green);
-                    // Stop execution
-                    UnityEditor.EditorApplication.isPlaying = false;
+                    targetPoint = targetUpPoint;
+                    targetFePoint = targetDownPoint;
                 }
                 else
                 {
-                    GameObject collidedObj = hitInfo.collider.gameObject;
-                    // Take the parent of the parent (instead of the parent), since there
-                    // is an intermediate child called textured (refer to the GameObject structure
-                    // at line 331 for more information on this)
-                    GameObject parentOfCollidedObj = collidedObj.transform.parent.gameObject
-                        .transform.parent.gameObject;
+                    targetPoint = targetDownPoint;
+                    targetFePoint = targetUpPoint;
+                }
 
-                    // Check whether the collision happened with the desired grasp.
-                    // If the collision happened with
-                    // something different (e.g. another grasp, the object, etc.. the
-                    // trajectory is not a valid trajectory
-                    if (collidedObj.name == graspToExecute.name & objInScene.name == parentOfCollidedObj.name)
+                Vector3 direction = (targetPoint - wristCamera.transform.position).normalized;
+                Vector3 trajectoryStart = wristCamera.transform.position - direction * REFERENCE_TO_CAMERA_OFFSET;
+                Vector3 trajectoryEnd = targetPoint - direction * REFERENCE_TO_CAMERA_OFFSET;
+
+                // (1) The grasp is visible
+                bool isValid = Physics.Linecast(trajectoryStart, graspToExecute.transform.position, out hitInfo)
+                               && hitInfo.collider.gameObject == graspToExecute;
+
+                // (2) The trajectory is collision-free
+                if (isValid)
+                {
+                    Vector3 trajectory = trajectoryEnd - trajectoryStart;
+                    foreach (RaycastHit hit in Physics.RaycastAll(trajectoryStart, trajectory.normalized, trajectory.magnitude))
                     {
-                        //Debug.Log("VALID iteration for [" + collidedObj.name + "][" + parentOfCollidedObj.name + "]");
-                        break;
+                        if (hit.collider.gameObject != graspToExecute)
+                        {
+                            isValid = false;
+                            break;
+                        }
                     }
-                    else
-                    { 
-                        // Invalid trajectory: sample another camera
-                        // position, object placement and rotation
-                        randomWristCameraPlacement();
-                        randomObjectPlacement(objInScene, graspToExecute);
-                        randomObjectRotation(objInScene, graspToExecute);
-                    }
+                }
+
+                if (isValid)
+                {
+                    //Debug.Log("VALID iteration for [" + objInScene.name + "][" + graspToExecute.name + "]");
+                    break;
+                }
+                else
+                { 
+                    // Invalid pose: sample another camera position, object placement 
+                    // and rotation
+                    randomWristCameraPlacement();
+                    // The rotation must be set before the placement, which depends on it
+                    randomObjectRotation(objInScene, graspToExecute);
+                    randomObjectPlacement(objInScene, graspToExecute);
                 }
             }
             if (i == MAX_ATTEMPTS)
             {
-                Debug.LogError("INVALID iteration: no feasible camera-object pose " +
+                StopSimulation("INVALID iteration: no feasible camera-object pose " +
                                "found for [" + objInScene.name + "][" + graspToExecute.name + "]");
-                // Stop execution
-                UnityEditor.EditorApplication.isPlaying = false;
+                return;
             }
+
+            // Make wrist camera look at the target point to reach.
+            wristCamera.transform.LookAt(targetPoint);
 
             // Compute pronation-supination angle
             if (graspToExecute.name.Contains("[nops]"))
@@ -684,12 +832,17 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             }
             else
             {
-                // Make the camera pointing at the center of the parallelepiped,
-                // in order to correctly compute the ps angle 
-                wristCamera.transform.LookAt(graspToExecute.transform);
-                psAngle = Vector3.SignedAngle(wristCamera.transform.right, 
-                                              graspToExecute.transform.right, 
-                                              Vector3.up);
+                // The camera is already looking at targetPoint, i.e. it has the orientation
+                // from which the pronation-supination will be performed
+                // The pronation-supination is a rotation around the camera z axis, hence
+                // the angle is measured within the plane orthogonal to that axis, and
+                // signed w.r.t. that axis. A positive psAngle means that a rotation of
+                // psAngle around the camera z axis aligns the two vectors
+                Vector3 psAxis = wristCamera.transform.forward;
+                Vector3 graspRight = Vector3.ProjectOnPlane(graspToExecute.transform.right, psAxis);
+                psAngle = Vector3.SignedAngle(wristCamera.transform.right,
+                                              graspRight,
+                                              psAxis);
 
                 if (graspToExecute.name.Contains("adducted_thumb")
                     || (graspToExecute.name.Contains("small_diameter") && objInScene.name.Contains("048_hammer"))
@@ -717,49 +870,11 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
                     {
                         psAngle = psAngle + (Mathf.Sign(psAngle) * -1 * 180);
                     }
-                    // Revert the sign since we will need to perform a rotation of -psAngle
-                    // around z axis to aling the two vectors generating the psAngle
-                    psAngle *= -1;
                 }
             }
             psAngle *= samplerPsPercentageRotation.Sample();
             psRotationStartingSampledValue = (float)Math.Round(psRotationStartingSampler.Sample(), 0);      // round to int
             psRotationDurationSampledValue = (float)Math.Round(psRotationDurationSampler.Sample(), 0);
-
-            // Choose the point of the grasp to reach. It will randomly be the upper or the lower
-            // extremity (along z axis) of the grasp parallelepiped
-            float halfHeight = graspToExecute.GetComponent<MeshFilter>().mesh.bounds.extents.z;
-            Vector3 targetUpPoint = graspToExecute.transform.TransformPoint(
-                //graspToExecute.transform.localPosition + new Vector3(0f, 0f, -halfHeight));
-                graspToExecute.transform.InverseTransformPoint(targetPoint) + new Vector3(0f, 0f, -halfHeight));
-            Vector3 targetDownPoint = graspToExecute.transform.TransformPoint(
-                //graspToExecute.transform.localPosition + new Vector3(0f, 0f, halfHeight));
-                graspToExecute.transform.InverseTransformPoint(targetPoint) + new Vector3(0f, 0f, halfHeight));
-
-            // targetPoint is used to determine the straight line
-            //  trajectory from the camera to targetPoint, which is one 
-            //  of the two extremity of the grasp parallelepiped
-            // targetFePoint is the point towards which the camera will
-            //  start performing, at a certain time, the flexion-extension
-            //  (which is the other extremity of the grasp parallelepiped)
-            
-            //Vector3 targetPoint;    
-            //Vector3 targetFePoint;  
-            
-            float sampledPoint = samplerTargetPoint.Sample();
-            if (sampledPoint > 0.5)        
-            {
-                targetPoint = targetUpPoint;
-                targetFePoint = targetDownPoint;
-            }
-            else
-            {
-                targetPoint = targetDownPoint;
-                targetFePoint = targetUpPoint;
-            }
-
-            // Make wrist camera look at the target point to reach.
-            wristCamera.transform.LookAt(targetPoint);
 
             // Sample the frame at which the camera will start performing the flexion-extension
             feRotationStartingSampledValue = (float)Math.Round(feRotationStartingSampler.Sample(), 0);
@@ -780,10 +895,28 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             float xf = 0;
             float zf = dist;
             minimumJerkPoints = minimumJerkStraightLineTrajectory(x0, z0, xf, zf);
+
+            currentSequenceParameters = new SequenceParameters
+            {
+                placementAttempts = i + 1,
+                cameraStartPosition = wristCamera.transform.position,
+                targetPoint = targetPoint,
+                reachUpPoint = reachUpPoint,
+                objectPosition = objInScene.transform.position,
+                objectRotationY = objInScene.transform.eulerAngles.y,
+                objectRotationZ = objInScene.transform.eulerAngles.z,
+                psAngle = float.IsNaN(psAngle) ? 0f : psAngle,
+                psStartFrame = (int)psRotationStartingSampledValue,
+                psDurationFrames = (int)psRotationDurationSampledValue,
+                feStartFrame = (int)feRotationStartingSampledValue
+            };
         }
 
         protected override void OnUpdate()
         {
+            if (isStopped)
+                return;
+
             // Get the step value, i.e., how much to move the camera forward
             // Since we use a straight line trajectory and the direction of this 
             // line is the same as the z-axis direction of the camera frame,
@@ -808,56 +941,26 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             // Flexion-extension rotation
             if (framesCounter >= feRotationStartingSampledValue)
             {
-                Vector3 targetAngleDir = targetFePoint - wristCamera.transform.position;
-                
-                // Use the first line if you want to have flexion-extension
-                //  rotation randomly up (extension) or
-                //  down (flexion) for each sequence.
-                //  Otherwise use the second line it you want to rotate only down
-                feAngle = Vector3.SignedAngle(targetAngleDir, 
-                                              wristCamera.transform.forward, 
-                                              Vector3.up);
-		        //feAngle = Vector3.Angle(targetAngleDir, wristCamera.transform.forward);
-                
-                if (framesCounter == feRotationStartingSampledValue)
-                {
-                    if (feAngle > 0f)
-                    {
-                        isPositive = true;
-                    }
-                    else
-                    {
-                        isPositive = false;
-                    }
-                }
-                else
-                {
-                    if ((isPositive && feAngle < 0f)
-                         || ((!isPositive) && feAngle > 0f))
-                    {
-                        // In some edge cases it happens that the camera flips up and down,
-                        // therefore the angle sometimes has positive values and sometimes 
-                        // negative values. To overcome this flipping, we keep track of the 
-                        // first sign of the angle and force the camera to rotate along that 
-                        // direction in the subsequent frames
-                        // A sample case in which we found this problem is (sometimes) in 
-                        // the adducted thumb case, so the code here is to overcome this problem
-                        feAngle *= -1f;
-                    }
-                }
+                // The flexion-extension is a rotation around the camera x axis, hence
+                // the angle towards targetFePoint is measured within the plane orthogonal
+                // to that axis, and signed w.r.t. that axis. In this way the rotation
+                // applied below always moves the camera towards targetFePoint (either up
+                // or down, depending on where targetFePoint is)
+                Vector3 feAxis = wristCamera.transform.right;
+                Vector3 targetAngleDir = Vector3.ProjectOnPlane(
+                    targetFePoint - wristCamera.transform.position, feAxis);
+                feAngle = Vector3.SignedAngle(wristCamera.transform.forward,
+                                              targetAngleDir,
+                                              feAxis);
 
-                wristCamera.transform.localRotation *= Quaternion.Euler(feAngle * 0.1f, 0f, 0f);        
+                wristCamera.transform.localRotation *= Quaternion.Euler(feAngle * 0.1f, 0f, 0f);
             }
         }
 
         protected override void OnIterationEnd()
         {
-            if ((iterationsCounter + 1) % numIterationsPerGrasp == 0)
-            {
-                // If the sequences for the current object-grasp pair 
-                // are terminated, deactivate the grasp 
-                graspToExecute.SetActive(false);
-            }
+            if (isStopped)
+                return;
 
             // Deletes generated foreground object after each scenario iteration is complete
             m_GameObjectOneWayCache.ResetAllObjects();
@@ -865,8 +968,10 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             // Re-assign the original material to the object, if changed
             if (originalObjMaterial != null)
             { 
-                objInScene.transform.Find("textured").GetComponent<Renderer>().material = originalObjMaterial;
+                objInScene.transform.Find("textured").GetComponent<Renderer>().sharedMaterial = originalObjMaterial;
                 originalObjMaterial = null;
+                Object.Destroy(sampledObjMaterialInstance);
+                sampledObjMaterialInstance = null;
             }
                 
             // Re-assign the original material to the hand, if changed
@@ -874,18 +979,16 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             {
                 if (hand.name.Contains("Arm02"))
                 {
-                    hand.GetComponent<Renderer>().material = originalHandMaterial;
+                    hand.GetComponent<Renderer>().sharedMaterial = originalHandMaterial;
                     originalHandMaterial = null;
                 }
                 else if (hand.name.Contains("Hannes_ARM"))
                 {
-                    Debug.LogError("Hannes_ARM restoring back initial material not implemented yet");
-                    UnityEditor.EditorApplication.isPlaying = false;
+                    StopSimulation("Hannes_ARM restoring back initial material not implemented yet");
                 }
                 else
                 {
-                    Debug.LogError("Unknown hand model");
-                    UnityEditor.EditorApplication.isPlaying = false;
+                    StopSimulation("Unknown hand model");
                 }
             }
 

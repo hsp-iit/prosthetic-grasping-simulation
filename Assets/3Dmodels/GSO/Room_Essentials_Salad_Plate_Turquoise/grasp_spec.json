@@ -1,0 +1,10 @@
+{
+  "name": "Room_Essentials_Salad_Plate_Turquoise",
+  "category": "plate",
+  "grasps": [
+    {
+      "name": "adducted_thumb[border]",
+      "approach": "back"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Threshold_Tray_Rectangle_Porcelain",
+  "category": "plate",
+  "grasps": [
+    {
+      "name": "adducted_thumb[border]",
+      "approach": "back"
+    }
+  ]
+}

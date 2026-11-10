@@ -87,6 +87,9 @@ def main(args):
                         continue
                     flag = True
                     metadatas = ann['grasp_type_values']
+                    # Parameters sampled for the sequence (not available
+                    # in datasets generated before they were reported)
+                    sequence_parameters = ann.get('sequence_parameters')
 
                     object_name = metadatas['object_name']
                     instance_name = metadatas['instance_name']
@@ -104,11 +107,12 @@ def main(args):
                             'Expected Wrist but {} found.'.format(view)    
                         )
                 if not flag:
-                    raise Exception('No grasp type labeler with name {} found.'
-                                    'Are you sure this is the correct name? '
-                                    'Did you enable the grasp type labeler '
-                                    'during the data collection?'
-                                    .format(GRASP_TYPE_ANNOTATION_DEFINITION))
+                    # Perception 1.0 captures one frame before the first
+                    # iteration starts, when no object is in the scene yet
+                    print('No grasp type annotation ({}) for {}, therefore '
+                          'skipping it.'.format(GRASP_TYPE_ANNOTATION_DEFINITION,
+                                                filename))
+                    continue
                 
                 # Construct path as the real dataset one
                 partial_new_path = os.path.join(args.output_base_folder, 
@@ -161,6 +165,11 @@ def main(args):
                             object_name, instance_name, grasp_type, preshape
                         )
                         data_log.write(out_data_log)
+                    # Keep also the parameters sampled for the sequence, 
+                    # e.g. to analyze the distribution of the generated data
+                    if sequence_parameters is not None:
+                        with open(os.path.join(path_to_metadata, 'sequence_parameters.json'), 'w') as f_params:
+                            json.dump(sequence_parameters, f_params, indent=4)
 
 
 if __name__ == '__main__':

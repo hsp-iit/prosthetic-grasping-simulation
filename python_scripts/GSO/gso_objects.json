@@ -1,0 +1,224 @@
+{
+  "_comment": [
+    "Google Scanned Objects (https://app.gazebosim.org/GoogleResearch/fuel/collections/Scanned%20Objects%20by%20Google%20Research) to import as objects to grasp.",
+    "name: the model name on Gazebo Fuel. category: the object category used in the labels (see GraspCatalog.instance2object for the YCB ones).",
+    "yaw: rotation (degrees, around the vertical axis) applied to the model before placing the grasps.",
+    "farthest_to: left, right, front or back. Rotates the model around the vertical axis such that its most protruding part (e.g. the handle of a mug) faces that side.",
+    "grasps: the grasp parallelepipeds. name: the grasp type and its tags, as in the YCB prefabs (e.g. large_diameter[left][susd]).",
+    "approach: where the camera comes from, in the frame of the upright object: top, bottom, left (-z), right (+z), front (-x), back (+x).",
+    "Optional: height (0..1, where along the object height a side grasp is placed, default 0.5), offset ([x, y, z] meters added to the grasp position),",
+    "size ([x, y, z] meters, the parallelepiped size: x is aligned with the hand palm width, z with the approach direction)."
+  ],
+  "objects": [
+    {
+      "name": "ACE_Coffee_Mug_Kristen_16_oz_cup",
+      "category": "mug",
+      "farthest_to": "right",
+      "grasps": [
+        {"name": "large_diameter[susd]", "approach": "left"},
+        {"name": "sphere_4fingers[nops]", "approach": "top"},
+        {"name": "adducted_thumb[susd]", "approach": "right"}
+      ]
+    },
+    {
+      "name": "Room_Essentials_Mug_White_Yellow",
+      "category": "mug",
+      "farthest_to": "right",
+      "grasps": [
+        {"name": "large_diameter[susd]", "approach": "right"},
+        {"name": "sphere_4fingers[nops]", "approach": "top"},
+        {"name": "adducted_thumb[susd]", "approach": "left"}
+      ]
+    },
+    {
+      "name": "Cole_Hardware_Mug_Classic_Blue",
+      "category": "mug",
+      "farthest_to": "right",
+      "grasps": [
+        {"name": "large_diameter[susd]", "approach": "left"},
+        {"name": "sphere_4fingers[nops]", "approach": "top"},
+        {"name": "adducted_thumb[susd]", "approach": "right"}
+      ]
+    },
+    {
+      "name": "Threshold_Porcelain_Coffee_Mug_All_Over_Bead_White",
+      "category": "mug",
+      "farthest_to": "right",
+      "grasps": [
+        {"name": "large_diameter[susd]", "approach": "left"},
+        {"name": "sphere_4fingers[nops]", "approach": "top"},
+        {"name": "adducted_thumb[susd]", "approach": "right"}
+      ]
+    },
+    {
+      "name": "Marc_Anthony_Skip_Professional_Oil_of_Morocco_Conditioner_with_Argan_Oil",
+      "category": "dispenser",
+      "grasps": [
+        {"name": "large_diameter", "approach": "left"},
+        {"name": "tripod[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "Lutein",
+      "category": "dispenser",
+      "grasps": [
+        {"name": "large_diameter", "approach": "left"},
+        {"name": "tripod[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "5_HTP",
+      "category": "dispenser",
+      "grasps": [
+        {"name": "large_diameter", "approach": "left"},
+        {"name": "tripod[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "CoQ10",
+      "category": "dispenser",
+      "grasps": [
+        {"name": "large_diameter", "approach": "left"},
+        {"name": "tripod[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "Nestle_Nesquik_Chocolate_Powder_Flavored_Milk_Additive_109_Oz_Canister",
+      "category": "tube",
+      "grasps": [
+        {"name": "sphere_4fingers[nops]", "approach": "top"},
+        {"name": "large_diameter[left][susd]", "approach": "left"},
+        {"name": "large_diameter[right][susd]", "approach": "right"}
+      ]
+    },
+    {
+      "name": "Threshold_Dinner_Plate_Square_Rim_White_Porcelain",
+      "category": "plate",
+      "grasps": [
+        {"name": "adducted_thumb[border]", "approach": "back"}
+      ]
+    },
+    {
+      "name": "Room_Essentials_Salad_Plate_Turquoise",
+      "category": "plate",
+      "grasps": [
+        {"name": "adducted_thumb[border]", "approach": "back"}
+      ]
+    },
+    {
+      "name": "Craftsman_Grip_Screwdriver_Phillips_Cushion",
+      "category": "small_tool",
+      "grasps": [
+        {
+          "name": "small_diameter",
+          "approach": "top",
+          "offset": [
+            -0.085,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Diamond_Visions_Scissors_Red",
+      "category": "small_tool",
+      "grasps": [
+        {"name": "prismatic_4fingers", "approach": "top"},
+        {"name": "adducted_thumb[border]", "approach": "left"}
+      ]
+    },
+    {
+      "name": "OXO_Cookie_Spatula",
+      "category": "big_tool",
+      "grasps": [
+        {
+          "name": "small_diameter",
+          "approach": "top",
+          "offset": [
+            0.06,
+            0,
+            0
+          ]
+        },
+        {"name": "adducted_thumb[border]", "approach": "front"}
+      ]
+    },
+    {
+      "name": "Hilary",
+      "category": "shoes",
+      "grasps": [
+        {"name": "tripod", "approach": "top"},
+        {"name": "large_diameter", "approach": "left"}
+      ]
+    },
+    {
+      "name": "Aroma_Stainless_Steel_Milk_Frother_2_Cup",
+      "category": "cattle",
+      "auto_grasps": false,
+      "grasps": []
+    },
+    {
+      "name": "CASTLE_BLOCKS",
+      "category": "toy",
+      "auto_grasps": false,
+      "grasps": []
+    },
+    {
+      "name": "Cole_Hardware_Hammer_Black",
+      "category": "big_tool",
+      "grasps": [
+        {
+          "name": "small_diameter",
+          "approach": "top",
+          "offset": [
+            0.04,
+            0,
+            0
+          ],
+          "local_surface": true
+        }
+      ]
+    },
+    {
+      "name": "Threshold_Porcelain_Pitcher_White",
+      "category": "dispenser",
+      "farthest_to": "right",
+      "grasps": [
+        {"name": "adducted_thumb", "approach": "right", "height": 0.65},
+        {"name": "sphere_4fingers[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "Threshold_Porcelain_Teapot_White",
+      "category": "teapot",
+      "farthest_to": "left",
+      "grasps": [
+        {"name": "adducted_thumb", "approach": "right"},
+        {"name": "tripod[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "Ecoforms_Cup_B4_SAN",
+      "category": "glass",
+      "grasps": [
+        {"name": "sphere_4fingers[nops]", "approach": "top"},
+        {"name": "large_diameter[susd]", "approach": "left"}
+      ]
+    },
+    {
+      "name": "Threshold_Ramekin_White_Porcelain",
+      "category": "glass",
+      "grasps": [
+        {"name": "sphere_4fingers[nops]", "approach": "top"}
+      ]
+    },
+    {
+      "name": "Threshold_Tray_Rectangle_Porcelain",
+      "category": "plate",
+      "grasps": [
+        {"name": "adducted_thumb[border]", "approach": "back"}
+      ]
+    }
+  ]
+}

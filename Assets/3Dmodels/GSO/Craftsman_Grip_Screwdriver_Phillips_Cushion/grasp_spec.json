@@ -1,0 +1,15 @@
+{
+  "name": "Craftsman_Grip_Screwdriver_Phillips_Cushion",
+  "category": "small_tool",
+  "grasps": [
+    {
+      "name": "small_diameter",
+      "approach": "top",
+      "offset": [
+        -0.085,
+        0,
+        0
+      ]
+    }
+  ]
+}

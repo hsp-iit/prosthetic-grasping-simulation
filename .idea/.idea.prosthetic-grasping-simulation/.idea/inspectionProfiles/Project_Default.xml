@@ -1,0 +1,23 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="psycopg2-binary" />
+          <option value="SQLAlchemy" />
+          <option value="GeoAlchemy2" />
+          <option value="pydantic-settings" />
+          <option value="python-dotenv" />
+          <option value="google-cloud-translate" />
+          <option value="googlemaps" />
+          <option value="pandas" />
+          <option value="geopandas" />
+          <option value="shapely" />
+          <option value="pytest" />
+          <option value="black" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

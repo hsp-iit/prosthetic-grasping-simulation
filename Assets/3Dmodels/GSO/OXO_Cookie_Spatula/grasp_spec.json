@@ -1,0 +1,19 @@
+{
+  "name": "OXO_Cookie_Spatula",
+  "category": "big_tool",
+  "grasps": [
+    {
+      "name": "small_diameter",
+      "approach": "top",
+      "offset": [
+        0.06,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "adducted_thumb[border]",
+      "approach": "front"
+    }
+  ]
+}

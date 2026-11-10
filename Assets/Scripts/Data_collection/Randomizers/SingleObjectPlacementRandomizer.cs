@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using UnityEngine.Perception.Randomization.Parameters;
-using UnityEngine.Perception.Randomization.Randomizers.Utilities;
+using UnityEngine.Perception.Randomization.Utilities;
 using UnityEngine.Perception.Randomization.Samplers;
 
 namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
@@ -18,7 +18,7 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
         /// The list of prefabs from which to sample one object per iteration
         /// </summary>
         [Tooltip("The list of prefabs from which to sample one object per iteration.")]
-        public GameObjectParameter prefabs;
+        public CategoricalParameter<GameObject> prefabs;
 
         /// <summary>
         /// The plane onto which randomly placing the object 
@@ -70,13 +70,16 @@ namespace UnityEngine.Perception.Randomization.Randomizers.SampleRandomizers
             // Sample random point onto the plane
             float sampleX = samplerX.Sample();
             float sampleZ = samplerZ.Sample();
-            // Compute the y offset necessary to put the object onto the plane:
-            //  get the distance from the object reference system to the bottom of the object
-            float y_offset = instance.transform.Find("textured").gameObject.GetComponent<Renderer>().bounds.extents.y;
 
             // Place the object onto the plane
-            Vector3 instancePlacement = plane.transform.position + new Vector3(sampleX, y_offset, sampleZ);
+            Vector3 instancePlacement = plane.transform.position + new Vector3(sampleX, 0f, sampleZ);
             instance.transform.position = instancePlacement;
+
+            // Then shift it along y such that its lowest part (from the world bounds) lies
+            // onto the plane, without assuming where the object reference system is w.r.t. the mesh
+            float y_offset = plane.transform.position.y 
+                             - instance.transform.Find("textured").gameObject.GetComponent<Renderer>().bounds.min.y;
+            instance.transform.position += new Vector3(0f, y_offset, 0f);
         }
 
         /// <summary>

@@ -1,0 +1,14 @@
+{
+  "name": "5_HTP",
+  "category": "dispenser",
+  "grasps": [
+    {
+      "name": "large_diameter",
+      "approach": "left"
+    },
+    {
+      "name": "tripod[nops]",
+      "approach": "top"
+    }
+  ]
+}

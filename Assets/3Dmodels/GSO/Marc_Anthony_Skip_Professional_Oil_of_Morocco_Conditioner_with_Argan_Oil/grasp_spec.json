@@ -1,0 +1,14 @@
+{
+  "name": "Marc_Anthony_Skip_Professional_Oil_of_Morocco_Conditioner_with_Argan_Oil",
+  "category": "dispenser",
+  "grasps": [
+    {
+      "name": "large_diameter",
+      "approach": "left"
+    },
+    {
+      "name": "tripod[nops]",
+      "approach": "top"
+    }
+  ]
+}

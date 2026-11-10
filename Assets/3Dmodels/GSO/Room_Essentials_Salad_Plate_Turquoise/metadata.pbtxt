@@ -1,0 +1,34 @@
+model {
+  file: "model.sdf"
+}
+name: "Room_Essentials_Salad_Plate_Turquoise"
+description: "Room Essentials Salad Plate, Turquoise"
+version: 1
+authors {
+  name: "Google"
+  email: "scanned-objects@google.com"
+}
+legal {
+  copyright: "Copyright 2020 Google LLC."
+  license: "Creative Commons Attribution 4.0 International"
+}
+annotations {
+  key: "brand"
+  value: "Room Essentials"
+}
+annotations {
+  key: "gtin"
+  value: "00085081236999"
+}
+annotations {
+  key: "sku"
+  value: "00085081236999"
+}
+compatibilities {
+  name: "Gazebo"
+  version {
+    major: 11
+  }
+}
+categories {
+}

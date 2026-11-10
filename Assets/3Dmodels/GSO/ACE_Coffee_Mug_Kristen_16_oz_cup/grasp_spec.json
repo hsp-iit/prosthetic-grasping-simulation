@@ -1,0 +1,19 @@
+{
+  "name": "ACE_Coffee_Mug_Kristen_16_oz_cup",
+  "category": "mug",
+  "farthest_to": "right",
+  "grasps": [
+    {
+      "name": "large_diameter[susd]",
+      "approach": "left"
+    },
+    {
+      "name": "sphere_4fingers[nops]",
+      "approach": "top"
+    },
+    {
+      "name": "adducted_thumb[susd]",
+      "approach": "right"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Nestle_Nesquik_Chocolate_Powder_Flavored_Milk_Additive_109_Oz_Canister",
+  "category": "tube",
+  "grasps": [
+    {
+      "name": "sphere_4fingers[nops]",
+      "approach": "top"
+    },
+    {
+      "name": "large_diameter[left][susd]",
+      "approach": "left"
+    },
+    {
+      "name": "large_diameter[right][susd]",
+      "approach": "right"
+    }
+  ]
+}
