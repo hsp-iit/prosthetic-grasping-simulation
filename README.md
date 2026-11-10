@@ -189,6 +189,18 @@ A standalone build uses less GPU memory than the Editor and is the most reliable
 - Open `File -> Build Profiles`, select `Linux`, make sure `Scenes/Data_collection` is the only scene in the list, click `Build` and choose an empty folder outside the repository (e.g. `~/builds/data_collection`), naming the executable `DataCollection`. The first build takes about 30 minutes (shader compilation).
 - Run it with `./run_data_collection.sh ~/builds/data_collection/DataCollection.x86_64 ~/synthetic_dataset`. A 1280x960 window shows the simulation (it must stay open: Linux builds do not render cameras in `-batchmode`), the dataset is written to `~/synthetic_dataset/<hash>/` and the window closes when all the videos are generated.
 
+## Synthetic dataset generation with a Windows build from the command line
+`BatchDataCollection.Build` (`Assets/Scripts/Data_collection/Editor/BatchDataCollection.cs`) configures the scenario from the command line and builds a Windows player, without changing the saved scene (the scene file is restored after the build). Close the Editor first, since the project cannot be open twice.
+```
+Unity.exe -batchmode -quit -projectPath PROJECT -executeMethod BatchDataCollection.Build ^
+    -preshapes lateral_no3,pinch_no3 -perGrasp 75 -seed 20261109 -buildPath D:/builds/A/DataCollection.exe -logFile build.log
+D:/builds/A/DataCollection.exe -screen-fullscreen 0 -screen-width 640 -screen-height 480 --output-path D:/datasets/A
+```
+- `-preshapes`: comma-separated preshape filter (omit for all grasps); `-perGrasp`: `Num Iterations Per Grasp`; `Iteration Count` is set to the number of selected object-grasp pairs times `-perGrasp`. Use a different `-seed` for every run that adds data to an existing one.
+- The player window size is the capture resolution: 640x480 matches the Game view used for the Editor runs.
+- The first build takes about 10 minutes (shader compilation), later ones about 1 minute.
+- The build deletes `Assets/Resources/Perception*.json` and `PerformanceTest*.json` and updates `ProjectSettings/BurstAotSettings_StandaloneWindows.json`; restore them with `git checkout -- Assets/Resources ProjectSettings/BurstAotSettings_StandaloneWindows.json`.
+
 ## Converting the generated videos into our own format
 - Once you are in the dataset folder mentioned above, you can find the labels (along with other metadata) as json files (`captures_***.json`) into the `Dataset023982da-0257-4541-9886-d22172b6c94c` folder (this is an example folder, you will have a different hash code following the `Dataset` name). <br>All the video frames (`rgb_***.png`) are located under the `RGB_another_hash_code_` folder.
 - We provide a script to convert the frames and labels into the structure used by our [experiments pipeline](https://github.com/hsp-iit/prosthetic-grasping-experiments). Each video will be organized according to the following path: `DATASET_BASE_FOLDER/CATEGORY_NAME/OBJECT_NAME/PRESHAPE_NAME/Wrist_d435/rgb*/*.png`. <br>For example: `ycb_synthetic_dataset/dispenser/006_mustard_bottle/power_no3/Wrist_d435/rgb*/*.png`
