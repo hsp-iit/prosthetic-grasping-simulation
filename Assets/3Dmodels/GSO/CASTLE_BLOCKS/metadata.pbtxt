@@ -1,0 +1,35 @@
+model {
+  file: "model.sdf"
+}
+name: "CASTLE_BLOCKS"
+description: "CASTLE BLOCKS\nExplore your imaginative side with this 35-piece castle-themed block set."
+version: 1
+authors {
+  name: "Google"
+  email: "scanned-objects@google.com"
+}
+legal {
+  copyright: "Copyright 2020 Google LLC."
+  license: "Creative Commons Attribution 4.0 International"
+}
+annotations {
+  key: "brand"
+  value: "PlanToys"
+}
+annotations {
+  key: "mpn"
+  value: "5651"
+}
+annotations {
+  key: "sku"
+  value: "05651P00"
+}
+compatibilities {
+  name: "Gazebo"
+  version {
+    major: 11
+  }
+}
+categories {
+  first: "Toys"
+}

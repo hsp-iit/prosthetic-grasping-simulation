@@ -159,6 +159,12 @@
       "grasps": []
     },
     {
+      "name": "CASTLE_BLOCKS",
+      "category": "toy",
+      "auto_grasps": false,
+      "grasps": []
+    },
+    {
       "name": "Cole_Hardware_Hammer_Black",
       "category": "big_tool",
       "grasps": [

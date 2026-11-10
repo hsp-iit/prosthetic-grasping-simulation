@@ -101,6 +101,8 @@ $RECYCLE.BIN/
 
 
 .vsconfig
+*.slnx
+__pycache__/
 
 app.config
 
